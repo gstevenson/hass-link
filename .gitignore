@@ -1,0 +1,20 @@
+# Build outputs
+bin/
+obj/
+dist/
+
+# User-specific VS/Rider files
+*.user
+.vs/
+.idea/
+*.suo
+
+# .NET publish output
+publish/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

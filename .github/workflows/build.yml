@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/HassLink/HassLink.csproj
+
+      - name: Build
+        run: dotnet build src/HassLink/HassLink.csproj --no-restore --configuration Release
+
+      - name: Verify build output
+        run: |
+          if (!(Test-Path "src/HassLink/bin/Release/net8.0-windows/win-x64/hass-link.exe")) {
+            Write-Error "Build output not found"
+            exit 1
+          }
+        shell: pwsh

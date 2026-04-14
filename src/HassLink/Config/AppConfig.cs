@@ -1,0 +1,54 @@
+using System.Text.Json.Serialization;
+
+namespace HassLink.Config;
+
+public class AppConfig
+{
+    public MqttConfig Mqtt { get; set; } = new();
+    public int PublishIntervalSeconds { get; set; } = 30;
+    public string DeviceName { get; set; } = Environment.MachineName;
+    public bool StartWithWindows { get; set; } = false;
+    public Dictionary<string, SensorConfig> Sensors { get; set; } = DefaultSensors();
+
+    private static Dictionary<string, SensorConfig> DefaultSensors() => new()
+    {
+        ["cpu"]          = new SensorConfig { Enabled = true },
+        ["ram"]          = new SensorConfig { Enabled = true },
+        ["disk"]         = new SensorConfig { Enabled = true },
+        ["network"]      = new SensorConfig { Enabled = true },
+        ["activeWindow"] = new SensorConfig { Enabled = true },
+        ["uptime"]       = new SensorConfig { Enabled = true },
+        ["battery"]      = new SensorConfig { Enabled = false },
+        ["cpuTemp"]      = new SensorConfig { Enabled = true },
+        ["gpuTemp"]      = new SensorConfig { Enabled = false },
+    };
+
+    public SensorConfig GetSensor(string id)
+    {
+        if (!Sensors.TryGetValue(id, out var cfg))
+        {
+            cfg = new SensorConfig();
+            Sensors[id] = cfg;
+        }
+        return cfg;
+    }
+}
+
+public class MqttConfig
+{
+    public string Host { get; set; } = "";
+    public int Port { get; set; } = 1883;
+    public string Username { get; set; } = "";
+    public string Password { get; set; } = "";
+    public string ClientId { get; set; } = $"hass-link-{Environment.MachineName}";
+    public bool UseTls { get; set; } = false;
+    public string BaseTopic { get; set; } = "hass-link";
+
+    [JsonIgnore]
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(Host);
+}
+
+public class SensorConfig
+{
+    public bool Enabled { get; set; } = true;
+}

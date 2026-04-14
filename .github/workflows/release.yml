@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write   # needed to create GitHub releases
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # Extract version from tag (e.g. v1.2.3 → 1.2.3)
+      - name: Get version
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $ver = $tag.TrimStart('v')
+          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      # Update the version in the .csproj to match the tag
+      - name: Set version in csproj
+        run: |
+          $ver = "${{ steps.version.outputs.VERSION }}"
+          $csproj = "src/HassLink/HassLink.csproj"
+          (Get-Content $csproj) `
+            -replace '<Version>.*</Version>', "<Version>$ver</Version>" `
+            -replace '<AssemblyVersion>.*</AssemblyVersion>', "<AssemblyVersion>$ver.0</AssemblyVersion>" `
+            -replace '<FileVersion>.*</FileVersion>', "<FileVersion>$ver.0</FileVersion>" |
+            Set-Content $csproj
+        shell: pwsh
+
+      - name: Publish
+        run: |
+          dotnet publish src/HassLink/HassLink.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:PublishReadyToRun=true `
+            --output src/HassLink/bin/publish
+        shell: pwsh
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+        shell: pwsh
+
+      - name: Create dist directory
+        run: New-Item -ItemType Directory -Force -Path dist
+        shell: pwsh
+
+      - name: Build installer
+        run: |
+          $ver = "${{ steps.version.outputs.VERSION }}"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            /DAppVersion=$ver `
+            installer\setup.iss
+        shell: pwsh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "hass-link v${{ steps.version.outputs.VERSION }}"
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: dist/hass-link-setup-${{ steps.version.outputs.VERSION }}.exe
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            1. Download `hass-link-setup-${{ steps.version.outputs.VERSION }}.exe` below
+            2. Run the installer (requires administrator — needed for CPU/GPU temperature sensors)
+            3. hass-link will start automatically and show a tray icon
+            4. Right-click the tray icon → **Settings** to enter your MQTT broker details
+            5. Sensors will appear automatically in Home Assistant via MQTT Discovery
