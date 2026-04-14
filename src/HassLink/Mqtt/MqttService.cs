@@ -1,7 +1,6 @@
 using System.Net.Security;
 using System.Security.Authentication;
 using MQTTnet;
-using MQTTnet.Client;
 using MQTTnet.Protocol;
 using HassLink.Config;
 
@@ -80,7 +79,7 @@ public class MqttService : IMqttPublisher, IDisposable
 
     private async Task DoConnectAsync(CancellationToken ct)
     {
-        var factory = new MqttFactory();
+        var factory = new MqttClientFactory();
         _client?.Dispose();
         _client = factory.CreateMqttClient();
 
@@ -94,15 +93,17 @@ public class MqttService : IMqttPublisher, IDisposable
             builder.WithCredentials(_config.Mqtt.Username, _config.Mqtt.Password);
 
         if (_config.Mqtt.UseTls)
-            builder.WithTlsOptions(o =>
-            {
-                o.UseTls();
-                o.WithCertificateValidationHandler(ctx => ctx.SslPolicyErrors == SslPolicyErrors.None);
-                o.WithSslProtocols(SslProtocols.Tls12 | SslProtocols.Tls13);
-            });
+            builder.WithTlsOptions(o => o
+                .UseTls(true)
+                .WithCertificateValidationHandler(ctx => ctx.SslPolicyErrors == SslPolicyErrors.None)
+                .WithSslProtocols(SslProtocols.Tls12 | SslProtocols.Tls13));
 
         _options = builder.Build();
-        await _client.ConnectAsync(_options, ct);
+
+        // v5: ConnectAsync returns a result instead of throwing on CONNACK failure
+        var result = await _client.ConnectAsync(_options, ct);
+        if (result.ResultCode != MqttClientConnectResultCode.Success)
+            throw new Exception($"MQTT connection refused: {result.ResultCode}");
     }
 
     public async Task DisconnectAsync()
@@ -142,7 +143,7 @@ public class MqttService : IMqttPublisher, IDisposable
     {
         try
         {
-            var factory = new MqttFactory();
+            var factory = new MqttClientFactory();
             using var client = factory.CreateMqttClient();
 
             var builder = new MqttClientOptionsBuilder()
@@ -155,16 +156,16 @@ public class MqttService : IMqttPublisher, IDisposable
                 builder.WithCredentials(cfg.Username, cfg.Password);
 
             if (cfg.UseTls)
-                builder.WithTlsOptions(o =>
-                {
-                    o.UseTls();
-                    o.WithCertificateValidationHandler(ctx => ctx.SslPolicyErrors == SslPolicyErrors.None);
-                    o.WithSslProtocols(SslProtocols.Tls12 | SslProtocols.Tls13);
-                });
+                builder.WithTlsOptions(o => o
+                    .UseTls(true)
+                    .WithCertificateValidationHandler(ctx => ctx.SslPolicyErrors == SslPolicyErrors.None)
+                    .WithSslProtocols(SslProtocols.Tls12 | SslProtocols.Tls13));
 
             var options = builder.Build();
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-            await client.ConnectAsync(options, cts.Token);
+            var result = await client.ConnectAsync(options, cts.Token);
+            if (result.ResultCode != MqttClientConnectResultCode.Success)
+                return (false, $"Connection refused: {result.ResultCode}");
             await client.DisconnectAsync();
             return (true, null);
         }
