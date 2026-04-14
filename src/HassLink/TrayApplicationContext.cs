@@ -22,6 +22,7 @@ public class TrayApplicationContext : ApplicationContext
     private SensorManager? _sensorManager;
     private HassDiscovery? _discovery;
     private SettingsForm? _settingsForm;
+    private AboutForm? _aboutForm;
 
     public TrayApplicationContext()
     {
@@ -161,8 +162,15 @@ public class TrayApplicationContext : ApplicationContext
 
     private void OnAbout(object? sender, EventArgs e)
     {
-        using var form = new AboutForm(() => _sensorManager?.GetHardwareDiagnostics() ?? "Services not running.");
-        form.ShowDialog();
+        if (_aboutForm is not null && !_aboutForm.IsDisposed)
+        {
+            _aboutForm.BringToFront();
+            return;
+        }
+
+        _aboutForm = new AboutForm(() => _sensorManager?.GetHardwareDiagnostics() ?? "Services not running.");
+        _aboutForm.FormClosed += (_, _) => _aboutForm = null;
+        _aboutForm.Show();
     }
 
     private void OnExit(object? sender, EventArgs e)
