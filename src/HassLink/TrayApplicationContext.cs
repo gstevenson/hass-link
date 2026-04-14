@@ -161,7 +161,7 @@ public class TrayApplicationContext : ApplicationContext
 
     private void OnAbout(object? sender, EventArgs e)
     {
-        using var form = new AboutForm();
+        using var form = new AboutForm(() => _sensorManager?.GetHardwareDiagnostics() ?? "Services not running.");
         form.ShowDialog();
     }
 
