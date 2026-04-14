@@ -67,7 +67,7 @@ public class HardwareSensor : ISensor
                         s.Name.Contains("Average", StringComparison.OrdinalIgnoreCase))
                         ?? tempSensors.FirstOrDefault();
 
-                    if (primary?.Value is float temp)
+                    if (primary?.Value is float temp && temp > 0)
                         readings.Add(new("cpu_temp", "CPU Temperature", Math.Round(temp, 1).ToString("F1"), "°C", "temperature", "mdi:thermometer"));
                 }
 
@@ -78,7 +78,7 @@ public class HardwareSensor : ISensor
 
                     var tempSensor = hardware.Sensors
                         .FirstOrDefault(s => s.SensorType == SensorType.Temperature);
-                    if (tempSensor?.Value is float gpuTemp)
+                    if (tempSensor?.Value is float gpuTemp && gpuTemp > 0)
                         readings.Add(new($"gpu_{safeId}_temp", $"GPU Temperature ({gpuName})", Math.Round(gpuTemp, 1).ToString("F1"), "°C", "temperature", "mdi:thermometer"));
 
                     var loadSensor = hardware.Sensors
