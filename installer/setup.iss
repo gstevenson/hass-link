@@ -4,7 +4,9 @@
 ; Or let GitHub Actions build it automatically on tag push.
 
 #define AppName "hass-link"
-#define AppVersion "0.1.0"
+#ifndef AppVersion
+  #error AppVersion must be passed via /DAppVersion=x.y.z
+#endif
 #define AppPublisher "gstevenson"
 #define AppURL "https://github.com/gstevenson/hass-link"
 #define AppExeName "hass-link.exe"
