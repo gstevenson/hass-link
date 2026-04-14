@@ -139,7 +139,7 @@ public class TrayApplicationContext : ApplicationContext
 
     private void ShowSettings()
     {
-        _settingsForm = new SettingsForm(_config);
+        _settingsForm = new SettingsForm(_config, () => _sensorManager?.GetTimeUntilNextPublish());
         _settingsForm.FormClosed += OnSettingsClosed;
         _settingsForm.Show();
     }

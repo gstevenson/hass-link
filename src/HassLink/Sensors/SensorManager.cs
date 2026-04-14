@@ -13,6 +13,7 @@ public class SensorManager : IDisposable
     private readonly List<ISensor> _sensors = [];
     private System.Windows.Forms.Timer? _timer;
     private AppConfig _config;
+    private DateTime? _lastPublishTime;
 
     public SensorManager(IMqttPublisher mqtt, AppConfig config)
     {
@@ -74,6 +75,7 @@ public class SensorManager : IDisposable
     private void StartTimer()
     {
         var intervalMs = Math.Max(5, _config.PublishIntervalSeconds) * 1000;
+        _lastPublishTime = DateTime.Now;
         _timer = new System.Windows.Forms.Timer { Interval = intervalMs };
         _timer.Tick += async (_, _) => await PublishAllAsync();
         _timer.Start();
@@ -86,8 +88,17 @@ public class SensorManager : IDisposable
         _timer = null;
     }
 
+    public TimeSpan? GetTimeUntilNextPublish()
+    {
+        if (_timer is null || _lastPublishTime is null) return null;
+        var next = _lastPublishTime.Value.AddMilliseconds(_timer.Interval);
+        var remaining = next - DateTime.Now;
+        return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+    }
+
     private async Task PublishAllAsync()
     {
+        _lastPublishTime = DateTime.Now;
         if (!_mqtt.IsConnected) return;
 
         var deviceId = SanitiseId(_config.DeviceName);
