@@ -11,7 +11,7 @@ static class Program
         Application.SetCompatibleTextRenderingDefault(false);
 
         // Prevent multiple instances
-        using var mutex = new System.Threading.Mutex(true, "hass-link-{A1B2C3D4}", out var createdNew);
+        using var mutex = new System.Threading.Mutex(true, @"Global\hass-link-A1B2C3D4-E5F6-7890-ABCD-EF1234567890", out var createdNew);
         if (!createdNew)
         {
             MessageBox.Show(
