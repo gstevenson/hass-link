@@ -61,19 +61,10 @@ public class TrayApplicationContext : ApplicationContext
         _mqtt.StateChanged += OnMqttStateChanged;
 
         _sensorManager = new SensorManager(_mqtt, _config);
+        _sensorManager.Start(_config);
 
         await _mqtt.ConnectAsync(_config);
-
-        // Give connection a moment to establish, then publish discovery + start polling
-        await Task.Delay(1500);
-        if (_mqtt.IsConnected)
-        {
-            _discovery = new HassDiscovery(_mqtt, _config);
-            await _discovery.PublishAvailabilityAsync(online: true);
-            await _discovery.PublishAllAsync(_sensorManager.GetSensors());
-        }
-
-        _sensorManager.Start(_config);
+        // Discovery is published in OnMqttConnectedAsync, triggered by the StateChanged event.
     }
 
     private async Task StopServicesAsync()
