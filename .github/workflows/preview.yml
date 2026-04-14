@@ -1,0 +1,78 @@
+name: Preview Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  preview:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Read version from csproj
+        id: version
+        run: |
+          $ver = (Select-Xml -Path src/HassLink/HassLink.csproj -XPath '//Version').Node.InnerText
+          echo "version=$ver-preview" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish
+        run: |
+          dotnet publish src/HassLink/HassLink.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:PublishReadyToRun=true `
+            --output src/HassLink/bin/publish
+        shell: pwsh
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+        shell: pwsh
+
+      - name: Create dist directory
+        run: New-Item -ItemType Directory -Force -Path dist
+        shell: pwsh
+
+      - name: Build installer
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            /DAppVersion=$ver `
+            installer\setup.iss
+        shell: pwsh
+
+      - name: Delete existing preview tag if present
+        run: |
+          $tag = "v${{ steps.version.outputs.version }}"
+          git push origin --delete $tag 2>$null || true
+          git tag --delete $tag 2>$null || true
+        shell: pwsh
+
+      - name: Create and push preview tag
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+        shell: pwsh
+
+      - name: Publish pre-release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
+          tag_name: "v${{ steps.version.outputs.version }}"
+          name: "hass-link v${{ steps.version.outputs.version }}"
+          draft: false
+          prerelease: true
+          files: dist/hass-link-setup-${{ steps.version.outputs.version }}.exe
+          body: |
+            :warning: **This is a preview build** — not intended for production use.
+
+            Built from branch `${{ github.ref_name }}` at ${{ github.sha }}.
