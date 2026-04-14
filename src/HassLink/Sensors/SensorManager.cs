@@ -99,8 +99,10 @@ public class SensorManager : IDisposable
                 var readings = await sensor.GetReadingsAsync();
                 foreach (var reading in readings)
                 {
-                    var topic = $"{_config.Mqtt.BaseTopic}/{deviceId}/{reading.SensorId}/state";
-                    await _mqtt.PublishAsync(topic, reading.Value, retain: true);
+                    var availTopic = $"{_config.Mqtt.BaseTopic}/{deviceId}/{reading.SensorId}/availability";
+                    var stateTopic = $"{_config.Mqtt.BaseTopic}/{deviceId}/{reading.SensorId}/state";
+                    await _mqtt.PublishAsync(availTopic, "online", retain: true);
+                    await _mqtt.PublishAsync(stateTopic, reading.Value, retain: true);
                 }
             }
             catch
