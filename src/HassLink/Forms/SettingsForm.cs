@@ -7,6 +7,9 @@ namespace HassLink.Forms;
 public class SettingsForm : Form
 {
     private readonly AppConfig _config;
+    private readonly Func<TimeSpan?> _getTimeUntilNextPublish;
+    private System.Windows.Forms.Timer? _countdownTimer;
+    private ToolStripStatusLabel _statusLabel = null!;
 
     // Connection tab controls
     private TextBox _tbHost = null!;
@@ -36,11 +39,13 @@ public class SettingsForm : Form
 
     public AppConfig? SavedConfig { get; private set; }
 
-    public SettingsForm(AppConfig config)
+    public SettingsForm(AppConfig config, Func<TimeSpan?> getTimeUntilNextPublish)
     {
         _config = config;
+        _getTimeUntilNextPublish = getTimeUntilNextPublish;
         BuildUI();
         LoadConfig();
+        StartCountdown();
     }
 
     private void BuildUI()
@@ -68,10 +73,38 @@ public class SettingsForm : Form
         btnSave.Location = new Point(btnPanel.Width - 180, 10);
         btnCancel.Location = new Point(btnPanel.Width - 92, 10);
 
+        _statusLabel = new ToolStripStatusLabel { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
+        var statusBar = new StatusStrip();
+        statusBar.Items.Add(_statusLabel);
+
         Controls.Add(tabs);
         Controls.Add(btnPanel);
+        Controls.Add(statusBar);
         AcceptButton = btnSave;
         CancelButton = btnCancel;
+    }
+
+    private void StartCountdown()
+    {
+        UpdateStatusLabel();
+        _countdownTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+        _countdownTimer.Tick += (_, _) => UpdateStatusLabel();
+        _countdownTimer.Start();
+    }
+
+    private void UpdateStatusLabel()
+    {
+        var remaining = _getTimeUntilNextPublish();
+        _statusLabel.Text = remaining is null
+            ? "Services not running"
+            : $"Next publish in {(int)remaining.Value.TotalSeconds}s";
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        _countdownTimer?.Stop();
+        _countdownTimer?.Dispose();
+        base.OnFormClosed(e);
     }
 
     private TabPage BuildConnectionTab()
@@ -261,6 +294,7 @@ public class SettingsForm : Form
 
         SavedConfig = _config;
         ConfigManager.Save(_config);
+        Close();
     }
 
     private async void OnTestConnection(object? sender, EventArgs e)
