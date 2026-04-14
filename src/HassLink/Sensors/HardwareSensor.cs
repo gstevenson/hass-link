@@ -24,6 +24,7 @@ public class HardwareSensor : ISensor
 
         _computer = new Computer
         {
+            IsMotherboardEnabled = true, // required for AMD Ryzen SMU temperature initialisation
             IsCpuEnabled = includeCpuTemp,
             IsGpuEnabled = includeGpuTemp,
         };
