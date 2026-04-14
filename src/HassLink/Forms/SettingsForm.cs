@@ -1,3 +1,4 @@
+using System.Security.Principal;
 using HassLink.Config;
 using HassLink.Mqtt;
 
@@ -132,10 +133,13 @@ public class SettingsForm : Form
         _cbCpuTemp      = MakeSensorCheck("CPU Temperature", "CPU package temp °C (requires admin)");
         _cbGpuTemp      = MakeSensorCheck("GPU Temperature / Load", "GPU temp °C and load % (requires admin)");
 
+        var isAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
         var adminNote = new Label
         {
-            Text = "Note: CPU/GPU temperature sensors require the app to run as Administrator.",
-            ForeColor = Color.DarkOrange,
+            Text = isAdmin
+                ? "Running as Administrator — temperature sensors available."
+                : "Not running as Administrator — CPU/GPU temperature sensors will not be available.",
+            ForeColor = isAdmin ? Color.DarkGreen : Color.DarkOrange,
             AutoSize = true,
             Padding = new Padding(0, 8, 0, 0),
             MaximumSize = new Size(400, 0),

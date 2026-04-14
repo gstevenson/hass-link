@@ -51,17 +51,12 @@ jobs:
             installer\setup.iss
         shell: pwsh
 
-      - name: Delete existing preview tag if present
+      - name: Delete existing preview release and tag if present
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "v${{ steps.version.outputs.version }}"
-          git push origin --delete $tag 2>$null || true
-          git tag --delete $tag 2>$null || true
-        shell: pwsh
-
-      - name: Create and push preview tag
-        run: |
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
+          gh release delete $tag --yes --cleanup-tag 2>$null || true
         shell: pwsh
 
       - name: Publish pre-release
