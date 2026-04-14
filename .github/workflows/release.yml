@@ -2,42 +2,51 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [ main ]
+    paths:
+      - src/HassLink/HassLink.csproj
 
 jobs:
+  # Fast check on ubuntu — detect whether <Version> actually changed
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.version.outputs.changed }}
+      version: ${{ steps.version.outputs.new }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect version change
+        id: version
+        run: |
+          NEW=$(grep -oP '(?<=<Version>)[^<]+' src/HassLink/HassLink.csproj)
+          OLD=$(git show HEAD~1:src/HassLink/HassLink.csproj | grep -oP '(?<=<Version>)[^<]+' || echo "")
+          echo "new=$NEW" >> $GITHUB_OUTPUT
+          echo "old=$OLD" >> $GITHUB_OUTPUT
+          echo "changed=$([[ $NEW != $OLD ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+
+  # Build installer and publish release — only runs when version changed
   release:
+    needs: check-version
+    if: needs.check-version.outputs.changed == 'true'
     runs-on: windows-latest
     permissions:
-      contents: write   # needed to create GitHub releases
+      contents: write
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      # Extract version from tag (e.g. v1.2.3 → 1.2.3)
-      - name: Get version
-        id: version
+      - name: Create and push tag
         run: |
-          $tag = "${{ github.ref_name }}"
-          $ver = $tag.TrimStart('v')
-          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
-        shell: pwsh
-
-      # Update the version in the .csproj to match the tag
-      - name: Set version in csproj
-        run: |
-          $ver = "${{ steps.version.outputs.VERSION }}"
-          $csproj = "src/HassLink/HassLink.csproj"
-          (Get-Content $csproj) `
-            -replace '<Version>.*</Version>', "<Version>$ver</Version>" `
-            -replace '<AssemblyVersion>.*</AssemblyVersion>', "<AssemblyVersion>$ver.0</AssemblyVersion>" `
-            -replace '<FileVersion>.*</FileVersion>', "<FileVersion>$ver.0</FileVersion>" |
-            Set-Content $csproj
+          git tag "v${{ needs.check-version.outputs.version }}"
+          git push origin "v${{ needs.check-version.outputs.version }}"
         shell: pwsh
 
       - name: Publish
@@ -61,24 +70,25 @@ jobs:
 
       - name: Build installer
         run: |
-          $ver = "${{ steps.version.outputs.VERSION }}"
+          $ver = "${{ needs.check-version.outputs.version }}"
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
             /DAppVersion=$ver `
             installer\setup.iss
         shell: pwsh
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        uses: softprops/action-gh-release@v2
         with:
-          name: "hass-link v${{ steps.version.outputs.VERSION }}"
+          tag_name: "v${{ needs.check-version.outputs.version }}"
+          name: "hass-link v${{ needs.check-version.outputs.version }}"
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          files: dist/hass-link-setup-${{ steps.version.outputs.VERSION }}.exe
+          prerelease: ${{ contains(needs.check-version.outputs.version, '-') }}
+          files: dist/hass-link-setup-${{ needs.check-version.outputs.version }}.exe
           generate_release_notes: true
           body: |
             ## Installation
 
-            1. Download `hass-link-setup-${{ steps.version.outputs.VERSION }}.exe` below
+            1. Download `hass-link-setup-${{ needs.check-version.outputs.version }}.exe` below
             2. Run the installer (requires administrator — needed for CPU/GPU temperature sensors)
             3. hass-link will start automatically and show a tray icon
             4. Right-click the tray icon → **Settings** to enter your MQTT broker details
