@@ -9,7 +9,7 @@ namespace HassLink.Mqtt;
 
 public enum ConnectionState { Disconnected, Connecting, Connected, Error }
 
-public class MqttService : IDisposable
+public class MqttService : IMqttPublisher, IDisposable
 {
     private IMqttClient? _client;
     private MqttClientOptions? _options;

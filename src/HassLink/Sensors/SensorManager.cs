@@ -9,12 +9,12 @@ namespace HassLink.Sensors;
 /// </summary>
 public class SensorManager : IDisposable
 {
-    private readonly MqttService _mqtt;
+    private readonly IMqttPublisher _mqtt;
     private readonly List<ISensor> _sensors = [];
     private System.Windows.Forms.Timer? _timer;
     private AppConfig _config;
 
-    public SensorManager(MqttService mqtt, AppConfig config)
+    public SensorManager(IMqttPublisher mqtt, AppConfig config)
     {
         _mqtt = mqtt;
         _config = config;

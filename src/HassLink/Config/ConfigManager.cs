@@ -55,7 +55,7 @@ public static class ConfigManager
             File.Move(tmp, ConfigPath);
     }
 
-    private static string EncryptPassword(string password)
+    internal static string EncryptPassword(string password)
     {
         if (string.IsNullOrEmpty(password)) return "";
         var bytes = Encoding.UTF8.GetBytes(password);
@@ -63,7 +63,7 @@ public static class ConfigManager
         return Convert.ToBase64String(encrypted);
     }
 
-    private static string DecryptPassword(string encryptedPassword)
+    internal static string DecryptPassword(string encryptedPassword)
     {
         if (string.IsNullOrEmpty(encryptedPassword)) return "";
         try
