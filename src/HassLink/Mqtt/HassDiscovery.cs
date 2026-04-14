@@ -13,10 +13,10 @@ namespace HassLink.Mqtt;
 /// </summary>
 public class HassDiscovery
 {
-    private readonly MqttService _mqtt;
+    private readonly IMqttPublisher _mqtt;
     private readonly AppConfig _config;
 
-    public HassDiscovery(MqttService mqtt, AppConfig config)
+    public HassDiscovery(IMqttPublisher mqtt, AppConfig config)
     {
         _mqtt = mqtt;
         _config = config;
