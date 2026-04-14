@@ -139,7 +139,7 @@ public class TrayApplicationContext : ApplicationContext
 
     private void ShowSettings()
     {
-        _settingsForm = new SettingsForm(_config);
+        _settingsForm = new SettingsForm(_config, () => _sensorManager?.GetTimeUntilNextPublish());
         _settingsForm.FormClosed += OnSettingsClosed;
         _settingsForm.Show();
     }
@@ -156,8 +156,15 @@ public class TrayApplicationContext : ApplicationContext
 
     private async Task RestartServicesAsync()
     {
-        await StopServicesAsync();
-        await StartServicesAsync();
+        try
+        {
+            await StopServicesAsync();
+            await StartServicesAsync();
+        }
+        catch (Exception ex)
+        {
+            _statusItem.Text = $"Restart failed: {ex.Message}";
+        }
     }
 
     private void OnAbout(object? sender, EventArgs e)

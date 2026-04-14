@@ -10,11 +10,18 @@ namespace HassLink.Mqtt;
 ///
 /// Discovery topic: homeassistant/sensor/{device_id}/{sensor_id}/config
 /// State topic:     {baseTopic}/{device_id}/{sensor_id}/state
+/// Availability:    {baseTopic}/{device_id}/status              (device-level)
+///                  {baseTopic}/{device_id}/{sensor_id}/availability (per-sensor)
+///
+/// Both availability topics must be "online" for HA to show the sensor as available.
+/// This lets us mark individual sensors unavailable when disabled, while the
+/// device-level topic handles the whole-app online/offline state.
 /// </summary>
 public class HassDiscovery
 {
     private readonly IMqttPublisher _mqtt;
     private readonly AppConfig _config;
+    private readonly HashSet<string> _publishedSensorIds = [];
 
     public HassDiscovery(IMqttPublisher mqtt, AppConfig config)
     {
@@ -29,7 +36,6 @@ public class HassDiscovery
         var deviceId = SensorManager.SanitiseId(_config.DeviceName);
         var device = BuildDevicePayload(deviceId);
 
-        // Collect all readings (we need the SensorReading metadata)
         foreach (var sensor in sensors)
         {
             try
@@ -51,13 +57,20 @@ public class HassDiscovery
         Dictionary<string, object> device)
     {
         var stateTopic = $"{_config.Mqtt.BaseTopic}/{deviceId}/{reading.SensorId}/state";
+        var deviceStatusTopic = $"{_config.Mqtt.BaseTopic}/{deviceId}/status";
+        var sensorAvailTopic = $"{_config.Mqtt.BaseTopic}/{deviceId}/{reading.SensorId}/availability";
 
         var payload = new Dictionary<string, object?>
         {
             ["name"] = reading.Name,
             ["unique_id"] = $"hasslink_{deviceId}_{reading.SensorId}",
             ["state_topic"] = stateTopic,
-            ["availability_topic"] = $"{_config.Mqtt.BaseTopic}/{deviceId}/status",
+            ["availability"] = new object[]
+            {
+                new { topic = deviceStatusTopic },
+                new { topic = sensorAvailTopic },
+            },
+            ["availability_mode"] = "all",
             ["payload_available"] = "online",
             ["payload_not_available"] = "offline",
             ["device"] = device,
@@ -76,6 +89,10 @@ public class HassDiscovery
         var json = JsonSerializer.Serialize(payload);
 
         await _mqtt.PublishAsync(discoveryTopic, json, retain: true);
+
+        // Mark this sensor available and track its ID
+        _publishedSensorIds.Add(reading.SensorId);
+        await _mqtt.PublishAsync(sensorAvailTopic, "online", retain: true);
     }
 
     private Dictionary<string, object> BuildDevicePayload(string deviceId)
@@ -91,15 +108,25 @@ public class HassDiscovery
     }
 
     /// <summary>
-    /// Publishes the online/offline availability status for this device.
+    /// Publishes online/offline availability for the device and all known sensors.
     /// Called on connect (online) and before disconnect (offline).
+    /// When going offline, all per-sensor availability topics are also marked offline
+    /// so that sensors disabled between sessions don't retain a stale "online" state.
     /// </summary>
     public async Task PublishAvailabilityAsync(bool online)
     {
         if (!_mqtt.IsConnected) return;
 
         var deviceId = SensorManager.SanitiseId(_config.DeviceName);
-        var topic = $"{_config.Mqtt.BaseTopic}/{deviceId}/status";
-        await _mqtt.PublishAsync(topic, online ? "online" : "offline", retain: true);
+        await _mqtt.PublishAsync($"{_config.Mqtt.BaseTopic}/{deviceId}/status", online ? "online" : "offline", retain: true);
+
+        if (!online)
+        {
+            foreach (var sensorId in _publishedSensorIds)
+            {
+                var topic = $"{_config.Mqtt.BaseTopic}/{deviceId}/{sensorId}/availability";
+                await _mqtt.PublishAsync(topic, "offline", retain: true);
+            }
+        }
     }
 }
