@@ -88,7 +88,7 @@ public class HardwareSensor : ISensor
                     var loadSensor = hardware.Sensors
                         .FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase));
                     if (loadSensor?.Value is float gpuLoad)
-                        readings.Add(new($"gpu_{safeId}_load", $"GPU Load ({gpuName})", Math.Round(gpuLoad, 1).ToString("F1"), "%", null, "mdi:gpu"));
+                        readings.Add(new($"gpu_{safeId}_load", $"GPU Load ({gpuName})", Math.Round(gpuLoad, 1).ToString("F1"), "%", null, "mdi:expansion-card"));
                 }
             }
         }
