@@ -34,7 +34,7 @@ public class HassDiscoveryTests
     {
         await _discovery.PublishAllAsync(OneCpuSensor());
 
-        var topic = _publisher.Published.Single().Topic;
+        var topic = DiscoveryMessage().Topic;
         Assert.Equal("homeassistant/sensor/testpc/cpu_usage/config", topic);
     }
 
@@ -43,7 +43,7 @@ public class HassDiscoveryTests
     {
         await _discovery.PublishAllAsync(OneCpuSensor());
 
-        var payload = ParsePayload(_publisher.Published.Single().Payload);
+        var payload = ParsePayload(DiscoveryMessage().Payload);
         Assert.Equal("hass-link/testpc/cpu_usage/state", payload["state_topic"].GetString());
     }
 
@@ -52,17 +52,23 @@ public class HassDiscoveryTests
     {
         await _discovery.PublishAllAsync(OneCpuSensor());
 
-        var payload = ParsePayload(_publisher.Published.Single().Payload);
+        var payload = ParsePayload(DiscoveryMessage().Payload);
         Assert.Equal("hasslink_testpc_cpu_usage", payload["unique_id"].GetString());
     }
 
     [Fact]
-    public async Task PublishAllAsync_PayloadContainsCorrectAvailabilityTopic()
+    public async Task PublishAllAsync_PayloadContainsCorrectAvailabilityTopics()
     {
         await _discovery.PublishAllAsync(OneCpuSensor());
 
-        var payload = ParsePayload(_publisher.Published.Single().Payload);
-        Assert.Equal("hass-link/testpc/status", payload["availability_topic"].GetString());
+        var payload = ParsePayload(DiscoveryMessage().Payload);
+        var topics = payload["availability"].EnumerateArray()
+            .Select(a => a.GetProperty("topic").GetString())
+            .ToList();
+
+        Assert.Contains("hass-link/testpc/status", topics);
+        Assert.Contains("hass-link/testpc/cpu_usage/availability", topics);
+        Assert.Equal("all", payload["availability_mode"].GetString());
     }
 
     [Fact]
@@ -70,7 +76,7 @@ public class HassDiscoveryTests
     {
         await _discovery.PublishAllAsync(OneCpuSensor());
 
-        var payload = ParsePayload(_publisher.Published.Single().Payload);
+        var payload = ParsePayload(DiscoveryMessage().Payload);
         Assert.Equal("CPU Usage", payload["name"].GetString());
     }
 
@@ -79,7 +85,7 @@ public class HassDiscoveryTests
     {
         await _discovery.PublishAllAsync(OneCpuSensor());
 
-        var payload = ParsePayload(_publisher.Published.Single().Payload);
+        var payload = ParsePayload(DiscoveryMessage().Payload);
         Assert.Equal("%", payload["unit_of_measurement"].GetString());
     }
 
@@ -88,11 +94,11 @@ public class HassDiscoveryTests
     {
         await _discovery.PublishAllAsync(OneCpuSensor());
 
-        Assert.True(_publisher.Published.Single().Retain);
+        Assert.True(DiscoveryMessage().Retain);
     }
 
     [Fact]
-    public async Task PublishAllAsync_PublishesOneMessagePerReading()
+    public async Task PublishAllAsync_PublishesOneDiscoveryMessagePerReading()
     {
         var sensors = new[]
         {
@@ -102,7 +108,8 @@ public class HassDiscoveryTests
 
         await _discovery.PublishAllAsync(sensors);
 
-        Assert.Equal(2, _publisher.Published.Count);
+        var discoveryCount = _publisher.Published.Count(m => m.Topic.StartsWith("homeassistant/"));
+        Assert.Equal(2, discoveryCount);
     }
 
     [Fact]
@@ -111,7 +118,7 @@ public class HassDiscoveryTests
         _config.DeviceName = "My PC";
         await _discovery.PublishAllAsync(OneCpuSensor());
 
-        var topic = _publisher.Published.Single().Topic;
+        var topic = DiscoveryMessage().Topic;
         Assert.StartsWith("homeassistant/sensor/my_pc/", topic);
     }
 
@@ -157,6 +164,9 @@ public class HassDiscoveryTests
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
+
+    private (string Topic, string Payload, bool Retain) DiscoveryMessage() =>
+        _publisher.Published.Single(m => m.Topic.StartsWith("homeassistant/"));
 
     private static IReadOnlyList<ISensor> OneCpuSensor() =>
         [new FakeSensor("cpu_usage", "CPU Usage", "42", "%")];
