@@ -39,7 +39,14 @@ public class MqttConfig
     public string Host { get; set; } = "";
     public int Port { get; set; } = 1883;
     public string Username { get; set; } = "";
+
+    /// <summary>Plaintext password for runtime use only — never serialized.</summary>
+    [JsonIgnore]
     public string Password { get; set; } = "";
+
+    /// <summary>DPAPI-encrypted, base64-encoded password written to config.json.</summary>
+    public string EncryptedPassword { get; set; } = "";
+
     public string ClientId { get; set; } = $"hass-link-{Environment.MachineName}";
     public bool UseTls { get; set; } = false;
     public string BaseTopic { get; set; } = "hass-link";
