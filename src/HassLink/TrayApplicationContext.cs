@@ -156,8 +156,15 @@ public class TrayApplicationContext : ApplicationContext
 
     private async Task RestartServicesAsync()
     {
-        await StopServicesAsync();
-        await StartServicesAsync();
+        try
+        {
+            await StopServicesAsync();
+            await StartServicesAsync();
+        }
+        catch (Exception ex)
+        {
+            _statusItem.Text = $"Restart failed: {ex.Message}";
+        }
     }
 
     private void OnAbout(object? sender, EventArgs e)

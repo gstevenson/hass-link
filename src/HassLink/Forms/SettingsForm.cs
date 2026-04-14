@@ -261,6 +261,7 @@ public class SettingsForm : Form
 
         SavedConfig = _config;
         ConfigManager.Save(_config);
+        Close();
     }
 
     private async void OnTestConnection(object? sender, EventArgs e)
