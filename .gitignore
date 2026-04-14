@@ -6,6 +6,7 @@ dist/
 # User-specific VS/Rider files
 *.user
 .vs/
+.vscode/
 .idea/
 *.suo
 
@@ -18,3 +19,4 @@ Thumbs.db
 
 # Logs
 *.log
+.claude/
