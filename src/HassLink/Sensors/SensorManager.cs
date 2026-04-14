@@ -113,6 +113,12 @@ public class SensorManager : IDisposable
     /// <summary>Returns all sensors for use by HA discovery and settings UI.</summary>
     public IReadOnlyList<ISensor> GetSensors() => _sensors.AsReadOnly();
 
+    public string GetHardwareDiagnostics()
+    {
+        var hw = _sensors.OfType<HardwareSensor>().FirstOrDefault();
+        return hw?.BuildDiagnosticReport() ?? "Hardware sensor is not enabled.";
+    }
+
     public static string SanitiseId(string name)
     {
         var sb = new System.Text.StringBuilder();

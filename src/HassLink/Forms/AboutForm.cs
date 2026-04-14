@@ -4,10 +4,14 @@ namespace HassLink.Forms;
 
 public class AboutForm : Form
 {
-    public AboutForm()
+    private readonly Func<string> _getDiagnostics;
+
+    public AboutForm(Func<string> getDiagnostics)
     {
+        _getDiagnostics = getDiagnostics;
+
         Text = "About hass-link";
-        Size = new Size(360, 240);
+        Size = new Size(360, 260);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -43,10 +47,58 @@ public class AboutForm : Form
         };
         panel.Controls.Add(link);
 
-        var btnClose = new Button { Text = "Close", DialogResult = DialogResult.OK, Width = 80, Margin = new Padding(0, 16, 0, 0) };
-        panel.Controls.Add(btnClose);
+        var btnPanel = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            Padding = new Padding(0, 16, 0, 0),
+        };
+
+        var btnDiagnostics = new Button { Text = "Hardware Diagnostics...", AutoSize = true };
+        btnDiagnostics.Click += OnShowDiagnostics;
+        btnPanel.Controls.Add(btnDiagnostics);
+
+        var btnClose = new Button { Text = "Close", DialogResult = DialogResult.OK, Width = 80, Margin = new Padding(8, 0, 0, 0) };
+        btnPanel.Controls.Add(btnClose);
         AcceptButton = btnClose;
 
+        panel.Controls.Add(btnPanel);
         Controls.Add(panel);
+    }
+
+    private void OnShowDiagnostics(object? sender, EventArgs e)
+    {
+        var report = _getDiagnostics();
+
+        var dlg = new Form
+        {
+            Text = "Hardware Diagnostics",
+            Size = new Size(620, 480),
+            StartPosition = FormStartPosition.CenterParent,
+            MinimizeBox = false,
+        };
+
+        var txt = new TextBox
+        {
+            Dock = DockStyle.Fill,
+            Multiline = true,
+            ReadOnly = true,
+            ScrollBars = ScrollBars.Both,
+            WordWrap = false,
+            Font = new Font(FontFamily.GenericMonospace, 9f),
+            Text = report,
+        };
+
+        var btnCopy = new Button
+        {
+            Text = "Copy to Clipboard",
+            Dock = DockStyle.Bottom,
+            Height = 32,
+        };
+        btnCopy.Click += (_, _) => Clipboard.SetText(report);
+
+        dlg.Controls.Add(txt);
+        dlg.Controls.Add(btnCopy);
+        dlg.ShowDialog(this);
     }
 }

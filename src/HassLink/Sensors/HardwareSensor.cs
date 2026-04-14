@@ -24,6 +24,7 @@ public class HardwareSensor : ISensor
 
         _computer = new Computer
         {
+            IsMotherboardEnabled = true, // required for AMD Ryzen SMU temperature initialisation
             IsCpuEnabled = includeCpuTemp,
             IsGpuEnabled = includeGpuTemp,
         };
@@ -57,7 +58,10 @@ public class HardwareSensor : ISensor
 
                 if (_includeCpuTemp && hardware.HardwareType == HardwareType.Cpu)
                 {
+                    // Some CPUs (e.g. AMD Ryzen) expose temperature sensors on SubHardware
+                    // rather than the top-level hardware object, so search both.
                     var tempSensors = hardware.Sensors
+                        .Concat(hardware.SubHardware.SelectMany(sh => sh.Sensors))
                         .Where(s => s.SensorType == SensorType.Temperature)
                         .ToList();
 
@@ -94,6 +98,52 @@ public class HardwareSensor : ISensor
         }
 
         return Task.FromResult<IReadOnlyList<SensorReading>>(readings);
+    }
+
+    public string BuildDiagnosticReport()
+    {
+        var sb = new System.Text.StringBuilder();
+
+        if (!_available)
+        {
+            sb.AppendLine("LibreHardwareMonitor failed to open (insufficient permissions or hardware error).");
+            return sb.ToString();
+        }
+
+        foreach (var hw in _computer.Hardware)
+        {
+            hw.Update();
+            sb.AppendLine($"[{hw.HardwareType}] {hw.Name}");
+
+            foreach (var sensor in hw.Sensors)
+                sb.AppendLine($"  {sensor.SensorType,-16} {sensor.Name,-36} {FormatValue(sensor)}");
+
+            foreach (var sub in hw.SubHardware)
+            {
+                sub.Update();
+                sb.AppendLine($"  SubHardware: [{sub.HardwareType}] {sub.Name}");
+                foreach (var sensor in sub.Sensors)
+                    sb.AppendLine($"    {sensor.SensorType,-16} {sensor.Name,-34} {FormatValue(sensor)}");
+            }
+
+            sb.AppendLine();
+        }
+
+        if (!_computer.Hardware.Any())
+            sb.AppendLine("No hardware detected.");
+
+        return sb.ToString();
+
+        static string FormatValue(LibreHardwareMonitor.Hardware.ISensor s) =>
+            s.Value.HasValue ? $"{s.Value.Value:F1} {s.SensorType switch {
+                SensorType.Temperature => "°C",
+                SensorType.Load or SensorType.Level => "%",
+                SensorType.Fan => "RPM",
+                SensorType.Power => "W",
+                SensorType.Voltage => "V",
+                SensorType.Clock => "MHz",
+                _ => ""
+            }}" : "null";
     }
 
     private static string MakeId(string name)
