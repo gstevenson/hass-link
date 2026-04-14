@@ -57,7 +57,10 @@ public class HardwareSensor : ISensor
 
                 if (_includeCpuTemp && hardware.HardwareType == HardwareType.Cpu)
                 {
+                    // Some CPUs (e.g. AMD Ryzen) expose temperature sensors on SubHardware
+                    // rather than the top-level hardware object, so search both.
                     var tempSensors = hardware.Sensors
+                        .Concat(hardware.SubHardware.SelectMany(sh => sh.Sensors))
                         .Where(s => s.SensorType == SensorType.Temperature)
                         .ToList();
 
