@@ -11,7 +11,7 @@ public class AboutForm : Form
         _getDiagnostics = getDiagnostics;
 
         Text = "About hass-link";
-        Size = new Size(360, 260);
+        Size = new Size(360, 280);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -22,11 +22,14 @@ public class AboutForm : Form
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
-            Padding = new Padding(20),
+            Padding = new Padding(20, 20, 20, 12),
         };
 
+        // Strip the git SHA from the informational version — show just "0.2.x"
+        var version = Application.ProductVersion.Split('+')[0];
+
         panel.Controls.Add(new Label { Text = "hass-link", Font = new Font(Font.FontFamily, 16, FontStyle.Bold), AutoSize = true });
-        panel.Controls.Add(new Label { Text = $"Version {Application.ProductVersion}", AutoSize = true, Padding = new Padding(0, 4, 0, 0) });
+        panel.Controls.Add(new Label { Text = $"Version {version}", AutoSize = true, Padding = new Padding(0, 4, 0, 0) });
         panel.Controls.Add(new Label { Text = "Windows → Home Assistant via MQTT", AutoSize = true, Padding = new Padding(0, 8, 0, 0), ForeColor = Color.Gray });
         panel.Controls.Add(new Label { Text = $"Running on {Environment.OSVersion}", AutoSize = true, Padding = new Padding(0, 4, 0, 0), ForeColor = Color.Gray });
 
@@ -47,22 +50,23 @@ public class AboutForm : Form
         };
         panel.Controls.Add(link);
 
-        var btnPanel = new FlowLayoutPanel
+        var btnDiagnostics = new Button { Text = "Hardware Diagnostics...", AutoSize = true, Margin = new Padding(0, 16, 8, 0) };
+        var btnClose = new Button { Text = "Close", AutoSize = true, Margin = new Padding(0, 16, 0, 0), DialogResult = DialogResult.OK };
+        btnDiagnostics.Click += OnShowDiagnostics;
+
+        var btnRow = new FlowLayoutPanel
         {
             AutoSize = true,
             FlowDirection = FlowDirection.LeftToRight,
-            Padding = new Padding(0, 16, 0, 0),
+            WrapContents = false,
+            Padding = new Padding(0),
+            Margin = new Padding(0),
         };
+        btnRow.Controls.Add(btnDiagnostics);
+        btnRow.Controls.Add(btnClose);
 
-        var btnDiagnostics = new Button { Text = "Hardware Diagnostics...", AutoSize = true };
-        btnDiagnostics.Click += OnShowDiagnostics;
-        btnPanel.Controls.Add(btnDiagnostics);
-
-        var btnClose = new Button { Text = "Close", DialogResult = DialogResult.OK, Width = 80, Margin = new Padding(8, 0, 0, 0) };
-        btnPanel.Controls.Add(btnClose);
+        panel.Controls.Add(btnRow);
         AcceptButton = btnClose;
-
-        panel.Controls.Add(btnPanel);
         Controls.Add(panel);
     }
 
