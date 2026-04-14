@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using HassLink.Config;
 using HassLink.Forms;
 using HassLink.Mqtt;
@@ -15,6 +16,7 @@ public class TrayApplicationContext : ApplicationContext
 {
     private readonly NotifyIcon _trayIcon;
     private readonly ToolStripMenuItem _statusItem;
+    private Icon? _currentTrayIcon;
     private AppConfig _config;
     private MqttService? _mqtt;
     private SensorManager? _sensorManager;
@@ -35,9 +37,10 @@ public class TrayApplicationContext : ApplicationContext
         menu.Items.Add("About", null, OnAbout);
         menu.Items.Add("Exit", null, OnExit);
 
+        _currentTrayIcon = BuildTrayIcon(connected: false);
         _trayIcon = new NotifyIcon
         {
-            Icon = BuildTrayIcon(connected: false),
+            Icon = _currentTrayIcon,
             Text = "hass-link",
             Visible = true,
             ContextMenuStrip = menu,
@@ -99,12 +102,15 @@ public class TrayApplicationContext : ApplicationContext
         {
             ConnectionState.Connected    => ($"Connected to {_config.Mqtt.Host}", true),
             ConnectionState.Connecting   => ("Connecting...", false),
-            ConnectionState.Error        => ($"Error: {_mqtt?.LastError ?? "unknown"}", false),
+            ConnectionState.Error        => ("Connection failed", false),
             _                            => ("Disconnected", false),
         };
 
         _statusItem.Text = text;
-        _trayIcon.Icon = BuildTrayIcon(icon);
+        var old = _currentTrayIcon;
+        _currentTrayIcon = BuildTrayIcon(icon);
+        _trayIcon.Icon = _currentTrayIcon;
+        old?.Dispose();
         _trayIcon.Text = $"hass-link — {text}";
 
         if (state == ConnectionState.Connected)
@@ -184,13 +190,16 @@ public class TrayApplicationContext : ApplicationContext
             key.DeleteValue("hass-link", throwOnMissingValue: false);
     }
 
+    [DllImport("user32.dll")]
+    private static extern bool DestroyIcon(IntPtr handle);
+
     /// <summary>
     /// Draws a simple dot icon — green when connected, grey when not.
     /// Avoids needing an .ico file to run the app.
     /// </summary>
     private static Icon BuildTrayIcon(bool connected)
     {
-        var bmp = new Bitmap(16, 16);
+        using var bmp = new Bitmap(16, 16);
         using var g = Graphics.FromImage(bmp);
         g.Clear(Color.Transparent);
 
@@ -198,13 +207,24 @@ public class TrayApplicationContext : ApplicationContext
         using var brush = new SolidBrush(color);
         g.FillEllipse(brush, 2, 2, 12, 12);
 
-        return Icon.FromHandle(bmp.GetHicon());
+        // GetHicon allocates a native GDI handle that Icon.FromHandle does not own.
+        // Clone to a fully managed Icon, then release the GDI handle immediately.
+        var hIcon = bmp.GetHicon();
+        try
+        {
+            return (Icon)Icon.FromHandle(hIcon).Clone();
+        }
+        finally
+        {
+            DestroyIcon(hIcon);
+        }
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
+            _currentTrayIcon?.Dispose();
             _trayIcon.Dispose();
             _mqtt?.Dispose();
             _sensorManager?.Dispose();
