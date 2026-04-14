@@ -1,3 +1,5 @@
+using System.Net.Security;
+using System.Security.Authentication;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
@@ -92,7 +94,12 @@ public class MqttService : IDisposable
             builder.WithCredentials(_config.Mqtt.Username, _config.Mqtt.Password);
 
         if (_config.Mqtt.UseTls)
-            builder.WithTlsOptions(o => o.UseTls());
+            builder.WithTlsOptions(o =>
+            {
+                o.UseTls();
+                o.WithCertificateValidationHandler(ctx => ctx.SslPolicyErrors == SslPolicyErrors.None);
+                o.WithSslProtocols(SslProtocols.Tls12 | SslProtocols.Tls13);
+            });
 
         _options = builder.Build();
         await _client.ConnectAsync(_options, ct);
@@ -148,7 +155,12 @@ public class MqttService : IDisposable
                 builder.WithCredentials(cfg.Username, cfg.Password);
 
             if (cfg.UseTls)
-                builder.WithTlsOptions(o => o.UseTls());
+                builder.WithTlsOptions(o =>
+                {
+                    o.UseTls();
+                    o.WithCertificateValidationHandler(ctx => ctx.SslPolicyErrors == SslPolicyErrors.None);
+                    o.WithSslProtocols(SslProtocols.Tls12 | SslProtocols.Tls13);
+                });
 
             var options = builder.Build();
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
