@@ -6,7 +6,8 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="'$(Configuration)' == 'Debug'">app.debug.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="'$(Configuration)' != 'Debug'">app.manifest</ApplicationManifest>
     <AssemblyName>hass-link</AssemblyName>
     <RootNamespace>HassLink</RootNamespace>
     <Version>0.2.0</Version>
@@ -16,11 +17,7 @@
     <Product>hass-link</Product>
     <Description>Windows system metrics publisher for Home Assistant via MQTT</Description>
     <Copyright>Copyright © 2026</Copyright>
-    <!-- Self-contained single-file exe — no .NET install required on target machine -->
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishReadyToRun>true</PublishReadyToRun>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
 
