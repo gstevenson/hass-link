@@ -28,8 +28,8 @@
           hass-link
         </a>
         <nav aria-label="Site navigation">
-          <a href="#sensors">Sensors</a>
-          <a href="#how-it-works">How it works</a>
+          <a href="#installation">Installation</a>
+          <a href="#available-sensors">Available sensors</a>
           <a
             href="https://github.com/gstevenson/hass-link"
             target="_blank"
@@ -111,11 +111,69 @@
         </div>
       </section>
 
-      <!-- Sensors -->
-      <section class="section section-alt" id="sensors">
+      <!-- How it works -->
+      <section class="section section-alt" id="installation">
         <div class="container">
           <div class="section-header">
-            <h2>What gets published</h2>
+            <h2>Installation</h2>
+            <h3 class="section-tagline">Up and running in minutes</h3>
+            <p>
+              No configuration files. No manual entity setup. Just install,
+              point it at your broker, and your PC appears in Home Assistant.
+            </p>
+          </div>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-number" aria-hidden="true">1</div>
+              <div class="step-body">
+                <h3>Download and install</h3>
+                <p>
+                  Run the installer — it handles everything including an
+                  optional Start with Windows entry. No .NET runtime needed on
+                  your machine.
+                </p>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-number" aria-hidden="true">2</div>
+              <div class="step-body">
+                <h3>Enter your MQTT details</h3>
+                <p>
+                  Right-click the tray icon and open Settings. Enter your broker
+                  host, port, and credentials. Use the built-in test button to
+                  confirm the connection.
+                </p>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-number" aria-hidden="true">3</div>
+              <div class="step-body">
+                <h3>Sensors appear in Home Assistant</h3>
+                <p>
+                  hass-link publishes MQTT discovery messages automatically.
+                  Your device and all enabled sensors appear under Settings →
+                  Devices with no further setup.
+                </p>
+              </div>
+            </li>
+          </ol>
+          <div class="installation-cta">
+            <a
+              href="https://github.com/gstevenson/hass-link/releases/latest"
+              class="btn btn-primary btn-large"
+            >
+              Download hass-link
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Available sensors -->
+      <section class="section" id="available-sensors">
+        <div class="container">
+          <div class="section-header">
+            <h2>Available sensors</h2>
+            <h3 class="section-tagline">What gets published</h3>
             <p>
               Enable or disable any sensor from the Settings window. Everything
               appears as a properly categorised entity in Home Assistant.
@@ -321,53 +379,6 @@
         </div>
       </section>
 
-      <!-- How it works -->
-      <section class="section" id="how-it-works">
-        <div class="container">
-          <div class="section-header">
-            <h2>Up and running in minutes</h2>
-            <p>
-              No configuration files. No manual entity setup. Just install,
-              point it at your broker, and your PC appears in Home Assistant.
-            </p>
-          </div>
-          <ol class="steps">
-            <li class="step">
-              <div class="step-number" aria-hidden="true">1</div>
-              <div class="step-body">
-                <h3>Download and install</h3>
-                <p>
-                  Run the installer — it handles everything including an
-                  optional Start with Windows entry. No .NET runtime needed on
-                  your machine.
-                </p>
-              </div>
-            </li>
-            <li class="step">
-              <div class="step-number" aria-hidden="true">2</div>
-              <div class="step-body">
-                <h3>Enter your MQTT details</h3>
-                <p>
-                  Right-click the tray icon and open Settings. Enter your broker
-                  host, port, and credentials. Use the built-in test button to
-                  confirm the connection.
-                </p>
-              </div>
-            </li>
-            <li class="step">
-              <div class="step-number" aria-hidden="true">3</div>
-              <div class="step-body">
-                <h3>Sensors appear in Home Assistant</h3>
-                <p>
-                  hass-link publishes MQTT discovery messages automatically.
-                  Your device and all enabled sensors appear under Settings →
-                  Devices with no further setup.
-                </p>
-              </div>
-            </li>
-          </ol>
-        </div>
-      </section>
 
       <!-- Requirements -->
       <section class="section section-alt" id="requirements">
@@ -455,22 +466,7 @@
         </div>
       </section>
 
-      <!-- CTA -->
-      <section class="section cta-section">
-        <div class="container cta-inner">
-          <h2>Ready to connect your PC?</h2>
-          <p>
-            Download the latest installer and have sensors in Home Assistant
-            within minutes.
-          </p>
-          <a
-            href="https://github.com/gstevenson/hass-link/releases/latest"
-            class="btn btn-primary btn-large"
-          >
-            Download hass-link
-          </a>
-        </div>
-      </section>
+
     </main>
 
     <footer class="site-footer">
@@ -484,5 +480,31 @@
         >
       </div>
     </footer>
+    <script>
+      fetch('https://api.github.com/repos/gstevenson/hass-link/releases/latest')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data) return;
+          document.querySelectorAll('a.btn[href*="releases"]').forEach(btn => {
+            btn.href = data.html_url;
+            btn.textContent = `Download hass-link ${data.tag_name}`;
+          });
+        })
+        .catch(() => {});
+    </script>
+
+    <script>
+      const navLinks = document.querySelectorAll('nav a[href^="#"]');
+      const sections = [...navLinks].map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+      const ratios = new Map(sections.map(s => [s.id, 0]));
+
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => ratios.set(entry.target.id, entry.intersectionRatio));
+        const activeId = [...ratios.entries()].reduce((best, cur) => cur[1] > best[1] ? cur : best, ['', 0])[0];
+        navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === `#${activeId}` && activeId !== ''));
+      }, { threshold: Array.from({ length: 11 }, (_, i) => i / 10) });
+
+      sections.forEach(s => observer.observe(s));
+    </script>
   </body>
 </html>
