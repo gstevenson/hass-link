@@ -175,9 +175,45 @@ public class TrayApplicationContext : ApplicationContext
             return;
         }
 
-        _aboutForm = new AboutForm(() => _sensorManager?.GetHardwareDiagnostics() ?? "Services not running.");
+        _aboutForm = new AboutForm(BuildDiagnosticReport);
         _aboutForm.FormClosed += (_, _) => _aboutForm = null;
         _aboutForm.Show();
+    }
+
+    private string BuildDiagnosticReport()
+    {
+        var sb = new System.Text.StringBuilder();
+        var version = Application.ProductVersion.Split('+')[0];
+        var isAdmin = new System.Security.Principal.WindowsPrincipal(
+            System.Security.Principal.WindowsIdentity.GetCurrent())
+            .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+
+        sb.AppendLine("=== Application ===");
+        sb.AppendLine($"Version:   {version}");
+        sb.AppendLine($"OS:        {Environment.OSVersion}");
+        sb.AppendLine($"Admin:     {(isAdmin ? "Yes" : "No")}");
+        sb.AppendLine();
+
+        sb.AppendLine("=== Configuration ===");
+        sb.AppendLine($"Device name:      {_config.DeviceName}");
+        sb.AppendLine($"Publish interval: {_config.PublishIntervalSeconds}s");
+        sb.AppendLine($"MQTT host:        {_config.Mqtt.Host}");
+        sb.AppendLine($"MQTT port:        {_config.Mqtt.Port}");
+        sb.AppendLine($"MQTT username:    {(_config.Mqtt.Username is { Length: > 0 } u ? u : "(none)")}");
+        sb.AppendLine($"MQTT password:    {(_config.Mqtt.EncryptedPassword is { Length: > 0 } ? "****" : "(none)")}");
+        sb.AppendLine($"TLS:              {(_config.Mqtt.UseTls ? "Yes" : "No")}");
+        sb.AppendLine($"Base topic:       {_config.Mqtt.BaseTopic}");
+        sb.AppendLine();
+
+        sb.AppendLine("=== Sensors ===");
+        foreach (var (id, cfg) in _config.Sensors)
+            sb.AppendLine($"{id,-14} {(cfg.Enabled ? "enabled" : "disabled")}");
+        sb.AppendLine();
+
+        sb.AppendLine("=== Hardware ===");
+        sb.AppendLine(_sensorManager?.GetHardwareDiagnostics() ?? "Services not running.");
+
+        return sb.ToString();
     }
 
     private void OnExit(object? sender, EventArgs e)

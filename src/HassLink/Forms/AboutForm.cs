@@ -81,7 +81,7 @@ public class AboutForm : Form
         };
         panel.Controls.Add(website);
 
-        var btnDiagnostics = new Button { Text = "Hardware Diagnostics...", AutoSize = true, Margin = new Padding(0, 16, 8, 0) };
+        var btnDiagnostics = new Button { Text = "Diagnostics...", AutoSize = true, Margin = new Padding(0, 16, 8, 0) };
         var btnClose = new Button { Text = "Close", AutoSize = true, Margin = new Padding(0, 16, 0, 0) };
         btnClose.Click += (_, _) => Close();
         btnDiagnostics.Click += OnShowDiagnostics;
@@ -114,7 +114,7 @@ public class AboutForm : Form
 
         var dlg = new Form
         {
-            Text = "Hardware Diagnostics",
+            Text = "Diagnostics",
             Size = new Size(620, 480),
             StartPosition = FormStartPosition.CenterParent,
             MinimizeBox = false,
