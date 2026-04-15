@@ -9,6 +9,8 @@ public static class ConfigManager
     private static readonly string ConfigDir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "hass-link");
 
+    public static string ConfigDirectory => ConfigDir;
+
     private static readonly string ConfigPath = Path.Combine(ConfigDir, "config.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
