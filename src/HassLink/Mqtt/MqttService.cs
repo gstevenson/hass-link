@@ -83,11 +83,20 @@ public class MqttService : IMqttPublisher, IDisposable
         _client?.Dispose();
         _client = factory.CreateMqttClient();
 
+        var deviceId = string.Concat(
+            _config.DeviceName.ToLower().Select(c => char.IsLetterOrDigit(c) ? c : '_')
+        ).Trim('_');
+        var willTopic = $"{_config.Mqtt.BaseTopic}/{deviceId}/status";
+
         var builder = new MqttClientOptionsBuilder()
             .WithTcpServer(_config.Mqtt.Host, _config.Mqtt.Port)
             .WithClientId(_config.Mqtt.ClientId)
             .WithCleanSession(true)
-            .WithKeepAlivePeriod(TimeSpan.FromSeconds(30));
+            .WithKeepAlivePeriod(TimeSpan.FromSeconds(30))
+            .WithWillTopic(willTopic)
+            .WithWillPayload("offline")
+            .WithWillRetain(true)
+            .WithWillQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce);
 
         if (!string.IsNullOrEmpty(_config.Mqtt.Username))
             builder.WithCredentials(_config.Mqtt.Username, _config.Mqtt.Password);

@@ -216,6 +216,15 @@ public class SettingsForm : Form
         layout.Controls.Add(new Label { Text = "" });
         layout.Controls.Add(note);
 
+        var btnOpenConfig = new Button { Text = "Open config folder", AutoSize = true, Margin = new Padding(0, 12, 0, 0) };
+        btnOpenConfig.Click += (_, _) =>
+        {
+            try { System.Diagnostics.Process.Start("explorer.exe", ConfigManager.ConfigDirectory); }
+            catch { }
+        };
+        layout.Controls.Add(new Label { Text = "" });
+        layout.Controls.Add(btnOpenConfig);
+
         page.Controls.Add(layout);
         return page;
     }
