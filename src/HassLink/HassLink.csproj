@@ -10,6 +10,7 @@
     <ApplicationManifest Condition="'$(Configuration)' != 'Debug'">app.manifest</ApplicationManifest>
     <AssemblyName>hass-link</AssemblyName>
     <RootNamespace>HassLink</RootNamespace>
+    <ApplicationIcon>..\..\assets\icon.ico</ApplicationIcon>
     <Version>0.2.9</Version>
     <AssemblyVersion>0.2.9.0</AssemblyVersion>
     <FileVersion>0.2.9.0</FileVersion>
@@ -21,6 +22,10 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\assets\icon.ico" LogicalName="icon.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
