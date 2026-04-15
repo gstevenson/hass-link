@@ -1,5 +1,9 @@
 # hass-link
 
+[![Build](https://github.com/gstevenson/hass-link/actions/workflows/build.yml/badge.svg)](https://github.com/gstevenson/hass-link/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/gstevenson/hass-link)](https://github.com/gstevenson/hass-link/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 A Windows system tray app that publishes device metrics to [Home Assistant](https://www.home-assistant.io/) via MQTT. Sensors appear automatically in Home Assistant without any manual configuration.
 
 ## Requirements

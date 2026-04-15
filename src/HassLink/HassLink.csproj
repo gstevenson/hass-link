@@ -16,7 +16,8 @@
     <Company>gstevenson</Company>
     <Product>hass-link</Product>
     <Description>Windows system metrics publisher for Home Assistant via MQTT</Description>
-    <Copyright>Copyright © 2026</Copyright>
+    <Copyright>Copyright © 2026 Greg Stevenson</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
