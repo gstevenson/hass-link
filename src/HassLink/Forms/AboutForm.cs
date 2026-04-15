@@ -82,7 +82,8 @@ public class AboutForm : Form
         panel.Controls.Add(website);
 
         var btnDiagnostics = new Button { Text = "Hardware Diagnostics...", AutoSize = true, Margin = new Padding(0, 16, 8, 0) };
-        var btnClose = new Button { Text = "Close", AutoSize = true, Margin = new Padding(0, 16, 0, 0), DialogResult = DialogResult.OK };
+        var btnClose = new Button { Text = "Close", AutoSize = true, Margin = new Padding(0, 16, 0, 0) };
+        btnClose.Click += (_, _) => Close();
         btnDiagnostics.Click += OnShowDiagnostics;
 
         var btnRow = new FlowLayoutPanel
