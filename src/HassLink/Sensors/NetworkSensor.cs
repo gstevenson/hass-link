@@ -33,7 +33,8 @@ public class NetworkSensor : ISensor
                 recv.NextValue();
                 send.NextValue();
 
-                _adapters.Add((instance, SanitiseInstanceName(instance), recv, send));
+                var displayName = instance.Length > 30 ? instance[..30] : instance;
+                _adapters.Add((instance, displayName, recv, send));
             }
         }
         catch
@@ -48,37 +49,15 @@ public class NetworkSensor : ISensor
 
         foreach (var (instance, name, recv, send) in _adapters)
         {
-            var recvMbps = Math.Round(recv.NextValue() / (1024 * 1024), 3);
-            var sendMbps = Math.Round(send.NextValue() / (1024 * 1024), 3);
-            var safeId = MakeId(instance);
+            var recvMbps = Math.Round(recv.NextValue() / SensorUnits.BytesPerMb, 3);
+            var sendMbps = Math.Round(send.NextValue() / SensorUnits.BytesPerMb, 3);
+            var safeId = SensorManager.SanitiseId(instance);
 
             readings.Add(new($"net_{safeId}_recv", $"Network {name} Download", recvMbps.ToString("F3"), "MB/s", null, "mdi:download-network"));
             readings.Add(new($"net_{safeId}_send", $"Network {name} Upload", sendMbps.ToString("F3"), "MB/s", null, "mdi:upload-network"));
         }
 
         return Task.FromResult<IReadOnlyList<SensorReading>>(readings);
-    }
-
-    private static string SanitiseInstanceName(string name)
-    {
-        // Shorten long adapter names for display
-        if (name.Length > 30)
-            name = name[..30];
-        return name;
-    }
-
-    private static string MakeId(string instanceName)
-    {
-        // Make a safe ID from the adapter instance name
-        var safe = new System.Text.StringBuilder();
-        foreach (var c in instanceName.ToLower())
-        {
-            if (char.IsLetterOrDigit(c))
-                safe.Append(c);
-            else
-                safe.Append('_');
-        }
-        return safe.ToString().Trim('_');
     }
 
     public void Dispose()
