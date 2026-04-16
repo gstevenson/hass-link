@@ -36,6 +36,7 @@ public class SettingsForm : Form
     private TextBox _tbDeviceName = null!;
     private NumericUpDown _nudInterval = null!;
     private CheckBox _cbStartWithWindows = null!;
+    private CheckBox _cbStartInBackground = null!;
 
     public AppConfig? SavedConfig { get; private set; }
 
@@ -199,10 +200,12 @@ public class SettingsForm : Form
         _tbDeviceName = new TextBox { Dock = DockStyle.Fill };
         _nudInterval = new NumericUpDown { Dock = DockStyle.Fill, Minimum = 5, Maximum = 3600, Value = 30 };
         _cbStartWithWindows = new CheckBox { Text = "Start with Windows", AutoSize = true };
+        _cbStartInBackground = new CheckBox { Text = "Start in background", AutoSize = true };
 
         AddRow(layout, "Device Name:", _tbDeviceName);
         AddRow(layout, "Publish every (s):", _nudInterval);
         AddRow(layout, "", _cbStartWithWindows);
+        AddRow(layout, "", _cbStartInBackground);
 
         var note = new Label
         {
@@ -264,6 +267,7 @@ public class SettingsForm : Form
         _tbDeviceName.Text = _config.DeviceName;
         _nudInterval.Value = Math.Clamp(_config.PublishIntervalSeconds, 5, 3600);
         _cbStartWithWindows.Checked = _config.StartWithWindows;
+        _cbStartInBackground.Checked = _config.StartInBackground;
 
         _cbCpu.Checked          = _config.GetSensor("cpu").Enabled;
         _cbRam.Checked          = _config.GetSensor("ram").Enabled;
@@ -290,6 +294,7 @@ public class SettingsForm : Form
             : _tbDeviceName.Text.Trim();
         _config.PublishIntervalSeconds = (int)_nudInterval.Value;
         _config.StartWithWindows = _cbStartWithWindows.Checked;
+        _config.StartInBackground = _cbStartInBackground.Checked;
 
         _config.GetSensor("cpu").Enabled          = _cbCpu.Checked;
         _config.GetSensor("ram").Enabled          = _cbRam.Checked;
