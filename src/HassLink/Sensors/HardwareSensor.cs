@@ -52,44 +52,17 @@ public class HardwareSensor : ISensor
             foreach (var hardware in _computer.Hardware)
             {
                 hardware.Update();
-
                 foreach (var subHardware in hardware.SubHardware)
                     subHardware.Update();
 
                 if (_includeCpuTemp && hardware.HardwareType == HardwareType.Cpu)
                 {
-                    // Some CPUs (e.g. AMD Ryzen) expose temperature sensors on SubHardware
-                    // rather than the top-level hardware object, so search both.
-                    var tempSensors = hardware.Sensors
-                        .Concat(hardware.SubHardware.SelectMany(sh => sh.Sensors))
-                        .Where(s => s.SensorType == SensorType.Temperature)
-                        .ToList();
-
-                    // Prefer "CPU Package" or "Core Average" if available
-                    var primary = tempSensors.FirstOrDefault(s =>
-                        s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) ||
-                        s.Name.Contains("Average", StringComparison.OrdinalIgnoreCase))
-                        ?? tempSensors.FirstOrDefault();
-
-                    if (primary?.Value is float temp && temp > 0)
-                        readings.Add(new("cpu_temp", "CPU Temperature", Math.Round(temp, 1).ToString("F1"), "°C", "temperature", "mdi:thermometer"));
+                    var reading = TryGetCpuReading(hardware);
+                    if (reading is not null) readings.Add(reading);
                 }
 
-                if (_includeGpuTemp && (hardware.HardwareType == HardwareType.GpuNvidia || hardware.HardwareType == HardwareType.GpuAmd || hardware.HardwareType == HardwareType.GpuIntel))
-                {
-                    var gpuName = hardware.Name;
-                    var safeId = MakeId(gpuName);
-
-                    var tempSensor = hardware.Sensors
-                        .FirstOrDefault(s => s.SensorType == SensorType.Temperature);
-                    if (tempSensor?.Value is float gpuTemp && gpuTemp > 0)
-                        readings.Add(new($"gpu_{safeId}_temp", $"GPU Temperature ({gpuName})", Math.Round(gpuTemp, 1).ToString("F1"), "°C", "temperature", "mdi:thermometer"));
-
-                    var loadSensor = hardware.Sensors
-                        .FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase));
-                    if (loadSensor?.Value is float gpuLoad)
-                        readings.Add(new($"gpu_{safeId}_load", $"GPU Load ({gpuName})", Math.Round(gpuLoad, 1).ToString("F1"), "%", null, "mdi:expansion-card"));
-                }
+                if (_includeGpuTemp && IsGpu(hardware.HardwareType))
+                    readings.AddRange(GetGpuReadings(hardware));
             }
         }
         catch
@@ -98,6 +71,51 @@ public class HardwareSensor : ISensor
         }
 
         return Task.FromResult<IReadOnlyList<SensorReading>>(readings);
+    }
+
+    private static bool IsGpu(HardwareType type) =>
+        type == HardwareType.GpuNvidia ||
+        type == HardwareType.GpuAmd ||
+        type == HardwareType.GpuIntel;
+
+    private static SensorReading? TryGetCpuReading(IHardware hardware)
+    {
+        // Some CPUs (e.g. AMD Ryzen) expose temperature sensors on SubHardware
+        // rather than the top-level hardware object, so search both.
+        var tempSensors = hardware.Sensors
+            .Concat(hardware.SubHardware.SelectMany(sh => sh.Sensors))
+            .Where(s => s.SensorType == SensorType.Temperature)
+            .ToList();
+
+        // Prefer "CPU Package" or "Core Average" if available
+        var primary = tempSensors.FirstOrDefault(s =>
+            s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) ||
+            s.Name.Contains("Average", StringComparison.OrdinalIgnoreCase))
+            ?? tempSensors.FirstOrDefault();
+
+        if (primary?.Value is not float temp || temp <= 0)
+            return null;
+
+        return new("cpu_temp", "CPU Temperature", Math.Round(temp, 1).ToString("F1"), "°C", "temperature", "mdi:thermometer");
+    }
+
+    private static List<SensorReading> GetGpuReadings(IHardware hardware)
+    {
+        var readings = new List<SensorReading>();
+        var gpuName = hardware.Name;
+        var safeId = SensorManager.SanitiseId(gpuName);
+
+        var tempSensor = hardware.Sensors
+            .FirstOrDefault(s => s.SensorType == SensorType.Temperature);
+        if (tempSensor?.Value is float gpuTemp && gpuTemp > 0)
+            readings.Add(new($"gpu_{safeId}_temp", $"GPU Temperature ({gpuName})", Math.Round(gpuTemp, 1).ToString("F1"), "°C", "temperature", "mdi:thermometer"));
+
+        var loadSensor = hardware.Sensors
+            .FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase));
+        if (loadSensor?.Value is float gpuLoad)
+            readings.Add(new($"gpu_{safeId}_load", $"GPU Load ({gpuName})", Math.Round(gpuLoad, 1).ToString("F1"), "%", null, "mdi:expansion-card"));
+
+        return readings;
     }
 
     public string BuildDiagnosticReport()
@@ -144,14 +162,6 @@ public class HardwareSensor : ISensor
                 SensorType.Clock => "MHz",
                 _ => ""
             }}" : "null";
-    }
-
-    private static string MakeId(string name)
-    {
-        var safe = new System.Text.StringBuilder();
-        foreach (var c in name.ToLower())
-            safe.Append(char.IsLetterOrDigit(c) ? c : '_');
-        return safe.ToString().Trim('_');
     }
 
     public void Dispose()
