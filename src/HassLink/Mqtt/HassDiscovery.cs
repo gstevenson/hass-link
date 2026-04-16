@@ -108,6 +108,21 @@ public class HassDiscovery
     }
 
     /// <summary>
+    /// Marks all previously published sensors offline without touching the device-level topic.
+    /// Called before rebuilding discovery so disabled sensors go unavailable in HA immediately.
+    /// </summary>
+    public async Task PublishAllSensorsOfflineAsync()
+    {
+        if (!_mqtt.IsConnected) return;
+        var deviceId = SensorManager.SanitiseId(_config.DeviceName);
+        foreach (var sensorId in _publishedSensorIds)
+        {
+            var topic = $"{_config.Mqtt.BaseTopic}/{deviceId}/{sensorId}/availability";
+            await _mqtt.PublishAsync(topic, "offline", retain: true);
+        }
+    }
+
+    /// <summary>
     /// Publishes online/offline availability for the device and all known sensors.
     /// Called on connect (online) and before disconnect (offline).
     /// When going offline, all per-sensor availability topics are also marked offline
