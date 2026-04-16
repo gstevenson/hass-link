@@ -140,22 +140,27 @@ public class TrayApplicationContext : ApplicationContext
     {
         _settingsForm = new SettingsForm(_config, () => _sensorManager?.GetTimeUntilNextPublish());
         _settingsForm.FormClosed += OnSettingsClosed;
+        _settingsForm.SettingsApplied += OnSettingsApplied;
         _settingsForm.Show();
+    }
+
+    private void OnSettingsApplied(object? sender, EventArgs e)
+    {
+        if (_settingsForm?.SavedConfig is null) return;
+        var oldConfig = _config;
+        _config = _settingsForm.SavedConfig;
+        ApplyStartWithWindows(_config.StartWithWindows);
+
+        if (HasConnectionSettingsChanged(oldConfig, _config))
+            _ = RestartServicesAsync();
+        else
+            _ = ApplySensorSettingsAsync();
     }
 
     private void OnSettingsClosed(object? sender, FormClosedEventArgs e)
     {
         if (_settingsForm?.SavedConfig is not null)
-        {
-            var oldConfig = _config;
-            _config = _settingsForm.SavedConfig;
-            ApplyStartWithWindows(_config.StartWithWindows);
-
-            if (HasConnectionSettingsChanged(oldConfig, _config))
-                _ = RestartServicesAsync();
-            else
-                _ = ApplySensorSettingsAsync();
-        }
+            OnSettingsApplied(sender, e);
     }
 
     private static bool HasConnectionSettingsChanged(AppConfig old, AppConfig next) =>
@@ -174,6 +179,9 @@ public class TrayApplicationContext : ApplicationContext
 
         if (_mqtt?.IsConnected == true)
         {
+            if (_discovery is not null)
+                await _discovery.PublishAllSensorsOfflineAsync();
+
             _discovery = new HassDiscovery(_mqtt, _config);
             await _discovery.PublishAvailabilityAsync(online: true);
             await _discovery.PublishAllAsync(_sensorManager.GetSensors());
