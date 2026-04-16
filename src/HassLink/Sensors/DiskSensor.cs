@@ -16,8 +16,8 @@ public class DiskSensor : ISensor
                 continue;
 
             var driveLetter = drive.Name.TrimEnd('\\').TrimEnd(':').ToLower();
-            var totalGb = Math.Round((double)drive.TotalSize / (1024 * 1024 * 1024), 2);
-            var freeGb = Math.Round((double)drive.AvailableFreeSpace / (1024 * 1024 * 1024), 2);
+            var totalGb = Math.Round((double)drive.TotalSize / SensorUnits.BytesPerGb, 2);
+            var freeGb = Math.Round((double)drive.AvailableFreeSpace / SensorUnits.BytesPerGb, 2);
             var usedGb = Math.Round(totalGb - freeGb, 2);
             var usedPercent = totalGb > 0 ? Math.Round(usedGb / totalGb * 100.0, 1) : 0;
 
