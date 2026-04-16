@@ -6,6 +6,8 @@
 
 A Windows system tray app that publishes device metrics to [Home Assistant](https://www.home-assistant.io/) via MQTT. Sensors appear automatically in Home Assistant without any manual configuration.
 
+Inspired by projects like [HASS.Agent](https://github.com/LAB02-Research/HASS.Agent) and [hass-workstation-service](https://github.com/sleevezipper/hass-workstation-service) that are no longer maintained.
+
 ## Requirements
 
 - Windows 10 or 11 (64-bit)
