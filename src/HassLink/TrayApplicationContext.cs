@@ -48,15 +48,14 @@ public class TrayApplicationContext : ApplicationContext
         };
         _trayIcon.DoubleClick += OnOpenSettings;
 
-        // Show settings on first run (no MQTT host configured yet)
-        if (!_config.Mqtt.IsConfigured)
-        {
-            ShowSettings();
-        }
-        else
-        {
+        // Always start services if MQTT is configured.
+        if (_config.Mqtt.IsConfigured)
             _ = StartServicesAsync();
-        }
+
+        // Show settings on first run (no MQTT configured) or if the user hasn't
+        // opted into background start.
+        if (!_config.Mqtt.IsConfigured || !_config.StartInBackground)
+            ShowSettings();
     }
 
     private async Task StartServicesAsync()

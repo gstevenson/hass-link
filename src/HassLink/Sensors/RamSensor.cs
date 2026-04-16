@@ -21,8 +21,8 @@ public class RamSensor : ISensor
         var availableBytes = (double)_availableBytes.NextValue();
         var usedBytes = totalBytes - availableBytes;
         var usedPercent = totalBytes > 0 ? Math.Round(usedBytes / totalBytes * 100.0, 1) : 0;
-        var usedGb = Math.Round(usedBytes / (1024 * 1024 * 1024), 2);
-        var totalGb = Math.Round(totalBytes / (1024 * 1024 * 1024), 2);
+        var usedGb = Math.Round(usedBytes / SensorUnits.BytesPerGb, 2);
+        var totalGb = Math.Round(totalBytes / SensorUnits.BytesPerGb, 2);
 
         IReadOnlyList<SensorReading> readings =
         [
