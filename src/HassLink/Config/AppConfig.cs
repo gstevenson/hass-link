@@ -8,6 +8,7 @@ public class AppConfig
     public int PublishIntervalSeconds { get; set; } = 30;
     public string DeviceName { get; set; } = Environment.MachineName;
     public bool StartWithWindows { get; set; } = false;
+    public bool StartInBackground { get; set; } = false;
     public Dictionary<string, SensorConfig> Sensors { get; set; } = DefaultSensors();
 
     private static Dictionary<string, SensorConfig> DefaultSensors() => new()
