@@ -147,9 +147,36 @@ public class TrayApplicationContext : ApplicationContext
     {
         if (_settingsForm?.SavedConfig is not null)
         {
+            var oldConfig = _config;
             _config = _settingsForm.SavedConfig;
             ApplyStartWithWindows(_config.StartWithWindows);
-            _ = RestartServicesAsync();
+
+            if (HasConnectionSettingsChanged(oldConfig, _config))
+                _ = RestartServicesAsync();
+            else
+                _ = ApplySensorSettingsAsync();
+        }
+    }
+
+    private static bool HasConnectionSettingsChanged(AppConfig old, AppConfig next) =>
+        old.Mqtt.Host != next.Mqtt.Host
+        || old.Mqtt.Port != next.Mqtt.Port
+        || old.Mqtt.Username != next.Mqtt.Username
+        || old.Mqtt.EncryptedPassword != next.Mqtt.EncryptedPassword
+        || old.Mqtt.UseTls != next.Mqtt.UseTls
+        || old.Mqtt.BaseTopic != next.Mqtt.BaseTopic
+        || old.DeviceName != next.DeviceName;
+
+    private async Task ApplySensorSettingsAsync()
+    {
+        if (_sensorManager is null) return;
+        _sensorManager.Restart(_config);
+
+        if (_mqtt?.IsConnected == true)
+        {
+            _discovery = new HassDiscovery(_mqtt, _config);
+            await _discovery.PublishAvailabilityAsync(online: true);
+            await _discovery.PublishAllAsync(_sensorManager.GetSensors());
         }
     }
 
