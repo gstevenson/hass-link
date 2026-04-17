@@ -1,7 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Principal;
 
 namespace HassLink.Forms;
 
+[ExcludeFromCodeCoverage]
 public class AboutForm : Form
 {
     private readonly Func<string> _getDiagnostics;

@@ -13,6 +13,10 @@ dist/
 # .NET publish output
 publish/
 
+# Code coverage (generated — regenerate with `make coverage`)
+coverage-results*/
+coverage-report/
+
 # OS
 .DS_Store
 Thumbs.db

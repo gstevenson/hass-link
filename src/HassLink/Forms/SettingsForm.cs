@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Principal;
 using HassLink.Config;
 using HassLink.Mqtt;
 
 namespace HassLink.Forms;
 
+[ExcludeFromCodeCoverage]
 public class SettingsForm : Form
 {
     private readonly AppConfig _config;

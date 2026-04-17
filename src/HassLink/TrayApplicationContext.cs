@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using HassLink.Config;
 using HassLink.Forms;
@@ -12,6 +13,7 @@ namespace HassLink;
 /// app lifetime without requiring a visible window. Think of it as a
 /// headless process that only surfaces a system-tray icon.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public class TrayApplicationContext : ApplicationContext
 {
     private readonly NotifyIcon _trayIcon;
