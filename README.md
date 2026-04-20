@@ -66,6 +66,19 @@ Enable or disable individual sensors. All sensors are enabled by default except 
 | Publish every (s) | How often sensor values are sent to your broker. Minimum 5 seconds. |
 | Start with Windows | Launch hass-link automatically when you log in. |
 
+## Building locally
+
+Requires [.NET 8 SDK](https://dotnet.microsoft.com/download) and [Inno Setup 6](https://jrsoftware.org/isinfo.php).
+
+```powershell
+.\build.ps1              # publish app + build installer
+.\build.ps1 publish      # publish app only
+.\build.ps1 installer    # publish app then build installer
+.\build.ps1 clean        # remove dist/ and publish output
+```
+
+The installer is written to `dist/hass-link-setup-<version>.exe`.
+
 ## Home Assistant
 
 No configuration is needed in Home Assistant. When hass-link connects to your broker it publishes [MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery) messages, and your sensors will appear automatically under a single device named after your machine.
