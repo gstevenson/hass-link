@@ -35,7 +35,7 @@ function Invoke-Release {
     if ($existing) {
         Write-Error "Tag $tag already exists. Bump <Version> in HassLink.csproj first."
     }
-    Write-Host "Tagging $tag and pushing — release pipeline will build the installer." -ForegroundColor Cyan
+    Write-Host "Tagging $tag and pushing - release pipeline will build the installer." -ForegroundColor Cyan
     git tag $tag
     git push origin $tag
 }
