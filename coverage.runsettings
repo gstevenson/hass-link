@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NOTE: On some Windows setups the --settings flag is ignored by coverlet.collector.
+  Use the -- passthrough syntax instead:
+
+  dotnet test tests/HassLink.Tests --collect:"XPlat Code Coverage" \
+    --results-directory ./coverage-results \
+    -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+
+  UI/entry-point classes (Forms, Program, TrayApplicationContext) are excluded via
+  [ExcludeFromCodeCoverage] attributes in source, so no filter config is needed here.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

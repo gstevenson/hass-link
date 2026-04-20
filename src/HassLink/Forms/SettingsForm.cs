@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Principal;
 using HassLink.Config;
 using HassLink.Mqtt;
 
 namespace HassLink.Forms;
 
+[ExcludeFromCodeCoverage]
 public class SettingsForm : Form
 {
     private readonly AppConfig _config;
@@ -39,6 +41,7 @@ public class SettingsForm : Form
     private CheckBox _cbStartInBackground = null!;
 
     public AppConfig? SavedConfig { get; private set; }
+    public event EventHandler? SettingsApplied;
 
     public SettingsForm(AppConfig config, Func<TimeSpan?> getTimeUntilNextPublish)
     {
@@ -65,13 +68,18 @@ public class SettingsForm : Form
 
         var btnPanel = new Panel { Dock = DockStyle.Bottom, Height = 48, Padding = new Padding(8) };
         var btnSave = new Button { Text = "Save", DialogResult = DialogResult.OK, Width = 80 };
+        var btnApply = new Button { Text = "Apply", Width = 80 };
         var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Width = 80 };
         btnSave.Click += OnSave;
+        btnApply.Click += (_, _) => ApplySettings();
         btnPanel.Controls.Add(btnSave);
+        btnPanel.Controls.Add(btnApply);
         btnPanel.Controls.Add(btnCancel);
         btnSave.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
+        btnApply.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
         btnCancel.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
-        btnSave.Location = new Point(btnPanel.Width - 180, 10);
+        btnSave.Location = new Point(btnPanel.Width - 268, 10);
+        btnApply.Location = new Point(btnPanel.Width - 180, 10);
         btnCancel.Location = new Point(btnPanel.Width - 92, 10);
 
         _statusLabel = new ToolStripStatusLabel { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
@@ -280,7 +288,7 @@ public class SettingsForm : Form
         _cbGpuTemp.Checked      = _config.GetSensor("gpuTemp").Enabled;
     }
 
-    private void OnSave(object? sender, EventArgs e)
+    private void ApplySettings()
     {
         _config.Mqtt.Host = _tbHost.Text.Trim();
         _config.Mqtt.Port = (int)_nudPort.Value;
@@ -308,6 +316,12 @@ public class SettingsForm : Form
 
         SavedConfig = _config;
         ConfigManager.Save(_config);
+        SettingsApplied?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnSave(object? sender, EventArgs e)
+    {
+        ApplySettings();
         Close();
     }
 

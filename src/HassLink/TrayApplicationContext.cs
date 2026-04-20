@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using HassLink.Config;
 using HassLink.Forms;
@@ -12,6 +13,7 @@ namespace HassLink;
 /// app lifetime without requiring a visible window. Think of it as a
 /// headless process that only surfaces a system-tray icon.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public class TrayApplicationContext : ApplicationContext
 {
     private readonly NotifyIcon _trayIcon;
@@ -140,16 +142,51 @@ public class TrayApplicationContext : ApplicationContext
     {
         _settingsForm = new SettingsForm(_config, () => _sensorManager?.GetTimeUntilNextPublish());
         _settingsForm.FormClosed += OnSettingsClosed;
+        _settingsForm.SettingsApplied += OnSettingsApplied;
         _settingsForm.Show();
+    }
+
+    private void OnSettingsApplied(object? sender, EventArgs e)
+    {
+        if (_settingsForm?.SavedConfig is null) return;
+        var oldConfig = _config;
+        _config = _settingsForm.SavedConfig;
+        ApplyStartWithWindows(_config.StartWithWindows);
+
+        if (HasConnectionSettingsChanged(oldConfig, _config))
+            _ = RestartServicesAsync();
+        else
+            _ = ApplySensorSettingsAsync();
     }
 
     private void OnSettingsClosed(object? sender, FormClosedEventArgs e)
     {
         if (_settingsForm?.SavedConfig is not null)
+            OnSettingsApplied(sender, e);
+    }
+
+    private static bool HasConnectionSettingsChanged(AppConfig old, AppConfig next) =>
+        old.Mqtt.Host != next.Mqtt.Host
+        || old.Mqtt.Port != next.Mqtt.Port
+        || old.Mqtt.Username != next.Mqtt.Username
+        || old.Mqtt.EncryptedPassword != next.Mqtt.EncryptedPassword
+        || old.Mqtt.UseTls != next.Mqtt.UseTls
+        || old.Mqtt.BaseTopic != next.Mqtt.BaseTopic
+        || old.DeviceName != next.DeviceName;
+
+    private async Task ApplySensorSettingsAsync()
+    {
+        if (_sensorManager is null) return;
+        _sensorManager.Restart(_config);
+
+        if (_mqtt?.IsConnected == true)
         {
-            _config = _settingsForm.SavedConfig;
-            ApplyStartWithWindows(_config.StartWithWindows);
-            _ = RestartServicesAsync();
+            if (_discovery is not null)
+                await _discovery.PublishAllSensorsOfflineAsync();
+
+            _discovery = new HassDiscovery(_mqtt, _config);
+            await _discovery.PublishAvailabilityAsync(online: true);
+            await _discovery.PublishAllAsync(_sensorManager.GetSensors());
         }
     }
 

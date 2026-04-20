@@ -1,5 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace HassLink;
 
+[ExcludeFromCodeCoverage]
 static class Program
 {
     [STAThread]

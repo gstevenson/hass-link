@@ -96,7 +96,7 @@ public class SensorManager : IDisposable
         return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
     }
 
-    private async Task PublishAllAsync()
+    internal async Task PublishAllAsync()
     {
         _lastPublishTime = DateTime.Now;
         if (!_mqtt.IsConnected) return;

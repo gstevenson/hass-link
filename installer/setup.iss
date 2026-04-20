@@ -27,7 +27,6 @@ OutputBaseFilename=hass-link-setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-WizardSmallImageFile=..\assets\icon.ico
 SetupIconFile=..\assets\icon.ico
 PrivilegesRequired=admin
 UninstallDisplayIcon={app}\{#AppExeName}
