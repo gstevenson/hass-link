@@ -2,41 +2,25 @@ name: Release
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - src/HassLink/HassLink.csproj
+    tags:
+      - 'v*.*.*'
 
 jobs:
-  # Fast check on ubuntu — detect whether <Version> actually changed
-  check-version:
-    runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.version.outputs.changed }}
-      version: ${{ steps.version.outputs.new }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 2
-
-      - name: Detect version change
-        id: version
-        run: |
-          NEW=$(grep -oP '(?<=<Version>)[^<]+' src/HassLink/HassLink.csproj)
-          OLD=$(git show HEAD~1:src/HassLink/HassLink.csproj | grep -oP '(?<=<Version>)[^<]+' || echo "")
-          echo "new=$NEW" >> $GITHUB_OUTPUT
-          echo "old=$OLD" >> $GITHUB_OUTPUT
-          echo "changed=$([[ $NEW != $OLD ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-
-  # Build installer and publish release — only runs when version changed
   release:
-    needs: check-version
-    if: needs.check-version.outputs.changed == 'true'
     runs-on: windows-latest
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Parse version from tag
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $ver = $tag.TrimStart('v')
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+        shell: pwsh
 
       - name: Setup .NET
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
@@ -47,12 +31,6 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore HassLink.sln
-
-      - name: Create and push tag
-        run: |
-          git tag "v${{ needs.check-version.outputs.version }}"
-          git push origin "v${{ needs.check-version.outputs.version }}"
-        shell: pwsh
 
       - name: Publish
         run: |
@@ -75,7 +53,7 @@ jobs:
 
       - name: Build installer
         run: |
-          $ver = "${{ needs.check-version.outputs.version }}"
+          $ver = "${{ steps.version.outputs.version }}"
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
             /DAppVersion=$ver `
             installer\setup.iss
@@ -84,16 +62,16 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
-          tag_name: "v${{ needs.check-version.outputs.version }}"
-          name: "hass-link v${{ needs.check-version.outputs.version }}"
+          tag_name: "${{ github.ref_name }}"
+          name: "hass-link ${{ github.ref_name }}"
           draft: false
-          prerelease: ${{ contains(needs.check-version.outputs.version, '-') }}
-          files: dist/hass-link-setup-${{ needs.check-version.outputs.version }}.exe
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: dist/hass-link-setup-${{ steps.version.outputs.version }}.exe
           generate_release_notes: true
           body: |
             ## Installation
 
-            1. Download `hass-link-setup-${{ needs.check-version.outputs.version }}.exe` below
+            1. Download `hass-link-setup-${{ steps.version.outputs.version }}.exe` below
             2. Run the installer (requires administrator — needed for CPU/GPU temperature sensors)
             3. hass-link will start automatically and show a tray icon
             4. Right-click the tray icon → **Settings** to enter your MQTT broker details
