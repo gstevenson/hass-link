@@ -79,6 +79,13 @@ Requires [.NET 8 SDK](https://dotnet.microsoft.com/download) and [Inno Setup 6](
 
 The installer is written to `dist/hass-link-setup-<version>.exe`.
 
+## Releasing
+
+1. Bump `<Version>` in `src/HassLink/HassLink.csproj` as part of your feature branch PR
+2. Merge the PR to `main`
+3. From `main`, run `.\build.ps1 release` — this tags the commit and pushes the tag
+4. The release pipeline builds the installer and publishes it to GitHub Releases automatically
+
 ## Home Assistant
 
 No configuration is needed in Home Assistant. When hass-link connects to your broker it publishes [MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery) messages, and your sensors will appear automatically under a single device named after your machine.

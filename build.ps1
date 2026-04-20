@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("all", "publish", "installer", "clean")]
+    [ValidateSet("all", "publish", "installer", "clean", "release")]
     [string]$Target = "all"
 )
 
@@ -29,10 +29,22 @@ function Invoke-Installer {
     & $iscc /DAppVersion=$version installer\setup.iss
 }
 
+function Invoke-Release {
+    $tag = "v$version"
+    $existing = git tag --list $tag
+    if ($existing) {
+        Write-Error "Tag $tag already exists. Bump <Version> in HassLink.csproj first."
+    }
+    Write-Host "Tagging $tag and pushing — release pipeline will build the installer." -ForegroundColor Cyan
+    git tag $tag
+    git push origin $tag
+}
+
 switch ($Target) {
     "publish"   { Invoke-Publish }
     "installer" { Invoke-Publish; Invoke-Installer }
     "all"       { Invoke-Publish; Invoke-Installer }
+    "release"   { Invoke-Release }
     "clean"     {
         Write-Host "Cleaning..." -ForegroundColor Cyan
         Remove-Item -Recurse -Force -ErrorAction SilentlyContinue dist, $publishDir
