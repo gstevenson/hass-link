@@ -7,9 +7,9 @@
 }
 
 :root {
-  --accent:       #6366f1;
-  --accent-dark:  #4f46e5;
-  --accent-light: #eef2ff;
+  --accent:       #16a34a;
+  --accent-dark:  #15803d;
+  --accent-light: #f0fdf4;
   --text:         #0f172a;
   --text-muted:   #64748b;
   --bg:           #ffffff;
@@ -166,12 +166,12 @@ nav a.active {
 .btn-primary {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 1px 2px rgba(99,102,241,.3), 0 4px 12px rgba(99,102,241,.2);
+  box-shadow: 0 1px 2px rgba(22,163,74,.3), 0 4px 12px rgba(22,163,74,.2);
 }
 
 .btn-primary:hover {
   background: var(--accent-dark);
-  box-shadow: 0 1px 3px rgba(79,70,229,.4), 0 6px 16px rgba(79,70,229,.25);
+  box-shadow: 0 1px 3px rgba(21,128,61,.4), 0 6px 16px rgba(21,128,61,.25);
   transform: translateY(-1px);
 }
 
@@ -197,7 +197,7 @@ nav a.active {
 .hero {
   padding-block: clamp(4rem, 10vw, 7rem);
   text-align: center;
-  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,.08), transparent);
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(22,163,74,.08), transparent);
 }
 
 .hero-badge {
