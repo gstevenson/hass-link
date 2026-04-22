@@ -380,6 +380,36 @@
       </section>
 
 
+      <!-- MQTT terminal preview -->
+      <section class="section section-terminal" id="mqtt-stream">
+        <div class="container">
+          <div class="section-header terminal-section-header">
+            <p class="section-label section-label--terminal">Under the hood</p>
+            <h2>Standard MQTT. Nothing hidden.</h2>
+            <p>
+              Every sensor publishes to a predictable topic. Inspect it in any MQTT
+              client &mdash; no proprietary protocol, no lock-in.
+            </p>
+          </div>
+          <div class="terminal-window">
+            <div class="terminal-titlebar" aria-hidden="true">
+              <span class="t-dot t-dot-red"></span>
+              <span class="t-dot t-dot-yellow"></span>
+              <span class="t-dot t-dot-green"></span>
+              <span class="terminal-cmd">mosquitto_sub -h 192.168.1.10 -t 'homeassistant/#' -v</span>
+            </div>
+            <div
+              class="terminal-body"
+              id="terminal-body"
+              role="log"
+              aria-label="Live MQTT message stream"
+              aria-live="polite"
+              aria-atomic="false"
+            ></div>
+          </div>
+        </div>
+      </section>
+
       <!-- Requirements -->
       <section class="section section-alt" id="requirements">
         <div class="container">
@@ -492,6 +522,81 @@
           });
         })
         .catch(() => {});
+    </script>
+
+    <script>
+      (function () {
+        var terminal = document.getElementById('terminal-body');
+        if (!terminal) return;
+
+        var DEVICE = 'MY-GAMING-PC';
+        var WINDOWS = [
+          'Visual Studio Code',
+          'Google Chrome — Home Assistant',
+          'Windows Explorer',
+          'Spotify',
+          'Task Manager',
+          'Steam',
+          'Cyberpunk 2077',
+          'Baldur\'s Gate 3',
+          'EA app',
+          'Fortnite',
+        ];
+
+        var winIdx = 0, sIdx = 0;
+
+        var sensors = [
+          { id: 'cpu_usage',         val: function() { return String(Math.floor(Math.random() * 35 + 5)); } },
+          { id: 'ram_used_gb',       val: function() { return (Math.random() * 8 + 10).toFixed(1); } },
+          { id: 'network_down_mbps', val: function() { return (Math.random() * 5).toFixed(2); } },
+          { id: 'active_window',     val: function() { return WINDOWS[winIdx++ % WINDOWS.length]; }, str: true },
+          { id: 'cpu_temp_c',        val: function() { return String(Math.floor(Math.random() * 18 + 54)); } },
+          { id: 'disk_c_percent',    val: function() { return '67'; } },
+          { id: 'uptime_hours',      val: function() { return (Math.random() * 3 + 16).toFixed(1); } },
+          { id: 'gpu_usage',         val: function() { return String(Math.floor(Math.random() * 12 + 3)); } },
+          { id: 'network_up_mbps',   val: function() { return (Math.random() * 1.5).toFixed(2); } },
+        ];
+
+        function ts() {
+          return new Date().toTimeString().slice(0, 8);
+        }
+
+        function topicHtml(id) {
+          return '<span class="t-prefix">homeassistant/sensor/</span>' +
+                 '<span class="t-device">' + DEVICE + '/</span>' +
+                 '<span class="t-sensor">' + id + '</span>' +
+                 '<span class="t-prefix">/state</span>';
+        }
+
+        function push(seed) {
+          var s = sensors[sIdx++ % sensors.length];
+          var value = s.val();
+
+          terminal.querySelectorAll('.terminal-cursor').forEach(function(c) { c.remove(); });
+
+          var el = document.createElement('div');
+          el.className = seed ? 'mqtt-msg mqtt-msg--seed' : 'mqtt-msg';
+
+          var payloadClass = s.str ? 'p-string' : 'p-number';
+          var payloadDisplay = s.str ? '"' + value + '"' : value;
+
+          el.innerHTML =
+            '<div class="mqtt-line">' +
+              '<span class="mqtt-ts">' + ts() + '</span>' +
+              topicHtml(s.id) +
+              ' <span class="' + payloadClass + '">' + payloadDisplay + '</span>' +
+              (seed ? '' : '<span class="terminal-cursor" aria-hidden="true"></span>') +
+            '</div>';
+
+          terminal.appendChild(el);
+          terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        for (var i = 0; i < 5; i++) push(true);
+        terminal.scrollTop = terminal.scrollHeight;
+
+        setInterval(function() { push(false); }, 2800);
+      })();
     </script>
 
     <script>
