@@ -332,11 +332,13 @@ nav a.active {
   margin-bottom: .625rem;
 }
 
-.section-tagline {
-  font-size: 1.0625rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  margin-bottom: .375rem;
+.section-label {
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: .5rem;
 }
 
 .section-header p {
