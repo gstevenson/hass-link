@@ -350,13 +350,14 @@ nav a.active {
 
 .sensor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
 }
 
+
 .sensor-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--accent-light);
+  border: 1px solid rgba(22,163,74,.2);
   border-radius: var(--radius);
   padding: 1.5rem;
   box-shadow: var(--shadow);
@@ -371,7 +372,7 @@ nav a.active {
 .sensor-icon {
   width: 40px;
   height: 40px;
-  background: var(--accent-light);
+  background: rgba(22,163,74,.18);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -499,7 +500,17 @@ nav a.active {
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 
+@media (max-width: 900px) {
+  .sensor-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 640px) {
+  .sensor-grid {
+    grid-template-columns: 1fr;
+  }
+
   nav a:not(.nav-github) {
     display: none;
   }
