@@ -197,7 +197,26 @@ nav a.active {
 .hero {
   padding-block: clamp(4rem, 10vw, 7rem);
   text-align: center;
-  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(22,163,74,.08), transparent);
+  position: relative;
+  background: radial-gradient(ellipse 80% 55% at 50% 0%, rgba(22,163,74,.1), transparent 70%);
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(22,163,74,.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22,163,74,.18) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 30%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 30%, transparent 85%);
+  pointer-events: none;
+}
+
+.hero-inner {
+  position: relative;
 }
 
 .hero-badge {
