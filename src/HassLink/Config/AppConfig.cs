@@ -24,6 +24,17 @@ public class AppConfig
         ["gpuTemp"]      = new SensorConfig { Enabled = false },
     };
 
+    public Dictionary<string, CommandConfig> Commands { get; set; } = DefaultCommands();
+
+    private static Dictionary<string, CommandConfig> DefaultCommands() => new()
+    {
+        ["shutdown"]  = new CommandConfig { Type = "shutdown",  Name = "Shutdown" },
+        ["restart"]   = new CommandConfig { Type = "restart",   Name = "Restart" },
+        ["sleep"]     = new CommandConfig { Type = "sleep",     Name = "Sleep" },
+        ["hibernate"] = new CommandConfig { Type = "hibernate", Name = "Hibernate" },
+        ["lock"]      = new CommandConfig { Type = "lock",      Name = "Lock Screen" },
+    };
+
     public SensorConfig GetSensor(string id)
     {
         if (!Sensors.TryGetValue(id, out var cfg))
@@ -59,4 +70,13 @@ public class MqttConfig
 public class SensorConfig
 {
     public bool Enabled { get; set; } = true;
+}
+
+public class CommandConfig
+{
+    public bool Enabled { get; set; } = false;
+    public string Type { get; set; } = "custom";
+    public string Name { get; set; } = "";
+    public string? Executable { get; set; }
+    public string? Arguments { get; set; }
 }

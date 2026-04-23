@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net.Security;
 using System.Security.Authentication;
 using MQTTnet;
@@ -14,12 +15,14 @@ public class MqttService : IMqttPublisher, IDisposable
     private MqttClientOptions? _options;
     private CancellationTokenSource? _reconnectCts;
     private AppConfig _config;
+    private readonly HashSet<string> _subscriptions = [];
 
     public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
     public string? LastError { get; private set; }
     public bool IsConnected => State == ConnectionState.Connected && (_client?.IsConnected ?? false);
 
     public event Action<ConnectionState>? StateChanged;
+    public event Action<string, string>? MessageReceived;
 
     public MqttService(AppConfig config)
     {
@@ -113,6 +116,42 @@ public class MqttService : IMqttPublisher, IDisposable
         var result = await _client.ConnectAsync(_options, ct);
         if (result.ResultCode != MqttClientConnectResultCode.Success)
             throw new Exception($"MQTT connection refused: {result.ResultCode}");
+
+        _client.ApplicationMessageReceivedAsync += OnApplicationMessageReceivedAsync;
+
+        if (_subscriptions.Count > 0)
+        {
+            var subBuilder = new MqttClientSubscribeOptionsBuilder();
+            foreach (var topic in _subscriptions)
+                subBuilder.WithTopicFilter(f => f.WithTopic(topic));
+            await _client.SubscribeAsync(subBuilder.Build(), ct);
+        }
+    }
+
+    public async Task SubscribeAsync(string topic)
+    {
+        _subscriptions.Add(topic);
+        if (!IsConnected || _client is null) return;
+        await _client.SubscribeAsync(new MqttClientSubscribeOptionsBuilder()
+            .WithTopicFilter(f => f.WithTopic(topic))
+            .Build());
+    }
+
+    public async Task UnsubscribeAsync(string topic)
+    {
+        _subscriptions.Remove(topic);
+        if (!IsConnected || _client is null) return;
+        await _client.UnsubscribeAsync(new MqttClientUnsubscribeOptionsBuilder()
+            .WithTopicFilter(topic)
+            .Build());
+    }
+
+    private Task OnApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args)
+    {
+        var topic = args.ApplicationMessage.Topic;
+        var payload = System.Text.Encoding.UTF8.GetString(args.ApplicationMessage.Payload.ToArray());
+        MessageReceived?.Invoke(topic, payload);
+        return Task.CompletedTask;
     }
 
     public async Task DisconnectAsync()
