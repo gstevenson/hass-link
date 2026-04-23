@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using HassLink.Commands;
 using HassLink.Config;
 using HassLink.Forms;
 using HassLink.Mqtt;
@@ -22,6 +23,7 @@ public class TrayApplicationContext : ApplicationContext
     private AppConfig _config;
     private MqttService? _mqtt;
     private SensorManager? _sensorManager;
+    private CommandManager? _commandManager;
     private HassDiscovery? _discovery;
     private SettingsForm? _settingsForm;
     private AboutForm? _aboutForm;
@@ -68,14 +70,23 @@ public class TrayApplicationContext : ApplicationContext
         _sensorManager = new SensorManager(_mqtt, _config);
         _sensorManager.Start(_config);
 
+        _commandManager = new CommandManager(_mqtt, _config);
+
         await _mqtt.ConnectAsync(_config);
-        // Discovery is published in OnMqttConnectedAsync, triggered by the StateChanged event.
+        // Discovery and subscriptions are set up in OnMqttConnectedAsync, triggered by StateChanged.
     }
 
     private async Task StopServicesAsync()
     {
         _sensorManager?.Dispose();
         _sensorManager = null;
+
+        if (_commandManager is not null)
+        {
+            await _commandManager.StopAsync();
+            _commandManager.Dispose();
+            _commandManager = null;
+        }
 
         if (_discovery is not null && (_mqtt?.IsConnected ?? false))
             await _discovery.PublishAvailabilityAsync(online: false);
@@ -125,6 +136,10 @@ public class TrayApplicationContext : ApplicationContext
         _discovery = new HassDiscovery(_mqtt, _config);
         await _discovery.PublishAvailabilityAsync(online: true);
         await _discovery.PublishAllAsync(_sensorManager.GetSensors());
+        await _discovery.PublishCommandDiscoveryAsync(_config.Commands);
+
+        if (_commandManager is not null)
+            await _commandManager.StartAsync();
     }
 
     private void OnOpenSettings(object? sender, EventArgs e)
@@ -179,14 +194,24 @@ public class TrayApplicationContext : ApplicationContext
         if (_sensorManager is null) return;
         _sensorManager.Restart(_config);
 
+        if (_commandManager is not null)
+            await _commandManager.RestartAsync(_config);
+
         if (_mqtt?.IsConnected == true)
         {
             if (_discovery is not null)
+            {
                 await _discovery.PublishAllSensorsOfflineAsync();
+                var enabledCommandIds = _config.Commands
+                    .Where(kv => kv.Value.Enabled)
+                    .Select(kv => kv.Key);
+                await _discovery.CleanupCommandsAsync(enabledCommandIds);
+            }
 
             _discovery = new HassDiscovery(_mqtt, _config);
             await _discovery.PublishAvailabilityAsync(online: true);
             await _discovery.PublishAllAsync(_sensorManager.GetSensors());
+            await _discovery.PublishCommandDiscoveryAsync(_config.Commands);
         }
     }
 
@@ -315,6 +340,7 @@ public class TrayApplicationContext : ApplicationContext
             _trayIcon.Dispose();
             _mqtt?.Dispose();
             _sensorManager?.Dispose();
+            _commandManager?.Dispose();
         }
         base.Dispose(disposing);
     }

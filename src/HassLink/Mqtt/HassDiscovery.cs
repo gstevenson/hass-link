@@ -1,4 +1,5 @@
 using System.Text.Json;
+using HassLink.Commands;
 using HassLink.Config;
 using HassLink.Sensors;
 
@@ -22,6 +23,7 @@ public class HassDiscovery
     private readonly IMqttPublisher _mqtt;
     private readonly AppConfig _config;
     private readonly HashSet<string> _publishedSensorIds = [];
+    private readonly HashSet<string> _publishedCommandIds = [];
 
     public HassDiscovery(IMqttPublisher mqtt, AppConfig config)
     {
@@ -94,6 +96,77 @@ public class HassDiscovery
         _publishedSensorIds.Add(reading.SensorId);
         await _mqtt.PublishAsync(sensorAvailTopic, "online", retain: true);
     }
+
+    public async Task PublishCommandDiscoveryAsync(IReadOnlyDictionary<string, CommandConfig> commands)
+    {
+        if (!_mqtt.IsConnected) return;
+
+        var deviceId = SensorManager.SanitiseId(_config.DeviceName);
+        var device = BuildDevicePayload(deviceId);
+        var deviceStatusTopic = $"{_config.Mqtt.BaseTopic}/{deviceId}/status";
+
+        foreach (var (id, cmd) in commands)
+        {
+            var discoveryTopic = $"homeassistant/button/{deviceId}/{id}/config";
+
+            if (cmd.Enabled)
+            {
+                var commandTopic = $"{_config.Mqtt.BaseTopic}/{deviceId}/{id}/set";
+                var payload = new Dictionary<string, object?>
+                {
+                    ["name"] = cmd.Name,
+                    ["unique_id"] = $"hasslink_{deviceId}_{id}",
+                    ["command_topic"] = commandTopic,
+                    ["payload_press"] = "PRESS",
+                    ["availability_topic"] = deviceStatusTopic,
+                    ["payload_available"] = "online",
+                    ["payload_not_available"] = "offline",
+                    ["device"] = device,
+                };
+
+                var icon = GetCommandIcon(cmd.Type);
+                if (icon is not null) payload["icon"] = icon;
+
+                await _mqtt.PublishAsync(discoveryTopic, JsonSerializer.Serialize(payload), retain: true);
+                _publishedCommandIds.Add(id);
+            }
+            else if (_publishedCommandIds.Remove(id))
+            {
+                await _mqtt.PublishAsync(discoveryTopic, "", retain: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Removes HA discovery for any previously published commands not in <paramref name="keepIds"/>.
+    /// Call this on the old HassDiscovery instance before recreating it, so deleted and
+    /// disabled commands are cleaned up before _publishedCommandIds is lost.
+    /// </summary>
+    public async Task CleanupCommandsAsync(IEnumerable<string> keepIds)
+    {
+        if (!_mqtt.IsConnected) return;
+
+        var keep = new HashSet<string>(keepIds);
+        var deviceId = SensorManager.SanitiseId(_config.DeviceName);
+
+        foreach (var id in _publishedCommandIds.Where(id => !keep.Contains(id)).ToList())
+        {
+            _publishedCommandIds.Remove(id);
+            var discoveryTopic = $"homeassistant/button/{deviceId}/{id}/config";
+            await _mqtt.PublishAsync(discoveryTopic, "", retain: true);
+        }
+    }
+
+    private static string? GetCommandIcon(string type) => type switch
+    {
+        "shutdown"  => "mdi:power",
+        "restart"   => "mdi:restart",
+        "sleep"     => "mdi:sleep",
+        "hibernate" => "mdi:weather-night",
+        "lock"      => "mdi:lock",
+        "custom"    => "mdi:console",
+        _           => null,
+    };
 
     private Dictionary<string, object> BuildDevicePayload(string deviceId)
     {
