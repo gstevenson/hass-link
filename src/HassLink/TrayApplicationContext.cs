@@ -27,6 +27,7 @@ public class TrayApplicationContext : ApplicationContext
     private HassDiscovery? _discovery;
     private SettingsForm? _settingsForm;
     private AboutForm? _aboutForm;
+    private (string Host, int Port, string Username, string EncryptedPassword, bool UseTls, string BaseTopic, string DeviceName)? _connectionSnapshot;
 
     public TrayApplicationContext()
     {
@@ -155,6 +156,15 @@ public class TrayApplicationContext : ApplicationContext
 
     private void ShowSettings()
     {
+        _connectionSnapshot = (
+            _config.Mqtt.Host,
+            _config.Mqtt.Port,
+            _config.Mqtt.Username,
+            _config.Mqtt.EncryptedPassword,
+            _config.Mqtt.UseTls,
+            _config.Mqtt.BaseTopic,
+            _config.DeviceName
+        );
         _settingsForm = new SettingsForm(_config, () => _sensorManager?.GetTimeUntilNextPublish());
         _settingsForm.FormClosed += OnSettingsClosed;
         _settingsForm.SettingsApplied += OnSettingsApplied;
@@ -164,11 +174,13 @@ public class TrayApplicationContext : ApplicationContext
     private void OnSettingsApplied(object? sender, EventArgs e)
     {
         if (_settingsForm?.SavedConfig is null) return;
-        var oldConfig = _config;
         _config = _settingsForm.SavedConfig;
         ApplyStartWithWindows(_config.StartWithWindows);
 
-        if (HasConnectionSettingsChanged(oldConfig, _config))
+        var snap = _connectionSnapshot;
+        _connectionSnapshot = null;
+
+        if (snap is not null && HasConnectionSettingsChanged(snap.Value, _config))
             _ = RestartServicesAsync();
         else
             _ = ApplySensorSettingsAsync();
@@ -180,14 +192,16 @@ public class TrayApplicationContext : ApplicationContext
             OnSettingsApplied(sender, e);
     }
 
-    private static bool HasConnectionSettingsChanged(AppConfig old, AppConfig next) =>
-        old.Mqtt.Host != next.Mqtt.Host
-        || old.Mqtt.Port != next.Mqtt.Port
-        || old.Mqtt.Username != next.Mqtt.Username
-        || old.Mqtt.EncryptedPassword != next.Mqtt.EncryptedPassword
-        || old.Mqtt.UseTls != next.Mqtt.UseTls
-        || old.Mqtt.BaseTopic != next.Mqtt.BaseTopic
-        || old.DeviceName != next.DeviceName;
+    private static bool HasConnectionSettingsChanged(
+        (string Host, int Port, string Username, string EncryptedPassword, bool UseTls, string BaseTopic, string DeviceName) snap,
+        AppConfig next) =>
+        snap.Host != next.Mqtt.Host
+        || snap.Port != next.Mqtt.Port
+        || snap.Username != next.Mqtt.Username
+        || snap.EncryptedPassword != next.Mqtt.EncryptedPassword
+        || snap.UseTls != next.Mqtt.UseTls
+        || snap.BaseTopic != next.Mqtt.BaseTopic
+        || snap.DeviceName != next.DeviceName;
 
     private async Task ApplySensorSettingsAsync()
     {
