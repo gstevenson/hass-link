@@ -5,7 +5,6 @@ using HassLink.Config;
 using HassLink.Forms;
 using HassLink.Mqtt;
 using HassLink.Sensors;
-using Microsoft.Win32;
 
 namespace HassLink;
 
@@ -306,14 +305,30 @@ public class TrayApplicationContext : ApplicationContext
 
     private static void ApplyStartWithWindows(bool enable)
     {
-        const string keyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
-        using var key = Registry.CurrentUser.OpenSubKey(keyPath, writable: true);
-        if (key is null) return;
-
+        // HKCU\Run is silently skipped by Windows for apps that require elevation.
+        // Task Scheduler with /rl highest is the correct mechanism for elevated auto-start.
+        const string taskName = "hass-link";
         if (enable)
-            key.SetValue("hass-link", $"\"{Application.ExecutablePath}\"");
+        {
+            var exePath = $"\"{Application.ExecutablePath}\"";
+            RunHidden("schtasks.exe", $"/create /tn \"{taskName}\" /tr {exePath} /sc onlogon /rl highest /f");
+        }
         else
-            key.DeleteValue("hass-link", throwOnMissingValue: false);
+        {
+            RunHidden("schtasks.exe", $"/delete /tn \"{taskName}\" /f");
+        }
+    }
+
+    private static void RunHidden(string fileName, string arguments)
+    {
+        using var p = new System.Diagnostics.Process();
+        p.StartInfo = new System.Diagnostics.ProcessStartInfo(fileName, arguments)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        p.Start();
+        p.WaitForExit();
     }
 
     [DllImport("user32.dll")]
