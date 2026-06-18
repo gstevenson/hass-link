@@ -48,15 +48,14 @@ Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
-[Registry]
-Root: HKCU; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; \
-  ValueType: string; ValueName: "{#AppName}"; \
-  ValueData: """{app}\{#AppExeName}"""; \
-  Flags: uninsdeletevalue; Tasks: startupicon
-
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; \
   Flags: nowait postinstall skipifsilent
+; HKCU\Run is silently skipped for apps requiring elevation; use Task Scheduler with /rl highest instead.
+Filename: "{sys}\schtasks.exe"; \
+  Parameters: "/create /tn ""{#AppName}"" /tr ""{app}\{#AppExeName}"" /sc onlogon /rl highest /f"; \
+  Flags: runhidden; Tasks: startupicon
 
 [UninstallRun]
 Filename: "taskkill"; Parameters: "/f /im {#AppExeName}"; Flags: runhidden; RunOnceId: "KillHassLink"
+Filename: "{sys}\schtasks.exe"; Parameters: "/delete /tn ""{#AppName}"" /f"; Flags: runhidden; RunOnceId: "RemoveStartupTask"
